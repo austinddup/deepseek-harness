@@ -67,7 +67,7 @@ flowchart LR
 | 决策 | 推荐及理由 | 代价与备选 | 待判断事项/确认状态 | 详情 |
 |---|---|---|---|---|
 | K1 包位置与名称 | `packages/experimental/sdd-workbench`，包名 `@deepseek-ai/dsh-sdd-workbench`，`private: true`。实验性包无产品支持承诺；按 `packages/experimental/AGENTS.md`，新包不带 `experimental` 前缀，需登记 `EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS` 与 `PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES` | 备选放 `packages/client/`：需要产品使用或 `product-package-policy.ts` 分类，作业插件不满足 | 用户已确认（2026-11-20） | 2.3.1 |
-| K2 加载方式 | 包内 `sdd-workbench.patch.yml` 插入一行，`name` 用相对路径指向本包；启动 `pnpm dsh web --patch packages/experimental/sdd-workbench/sdd-workbench.patch.yml`。依据：CLI 参考写明“插入行中的相对插件名以各自 patch 文件所在目录解析”；Client 模块注册表按最近的 package manifest 确定模块 id（`docs/subsystems/client-modules.zh.md:94`），仓库已有相对路径 patch 行先例（`packages/experimental/cua-macos/examples/macos.cordis.yml`）；`packages/experimental/AGENTS.md` 禁止 `apps/cli` 等发布包依赖实验性包，所以不能用裸包名 | 备选做成可选组合包并进官方插件目录（像 inspector-profile）：要改 `official-bundles`、`apps/cli`、发布清单与插件图形审批，超出作业范围 | **未验证**（评审判断很可能成立）：任务 T1 先做最小验证，并确认 `name` 写 `./` 还是 `./src/index.ts`；失败则回到用户决策 | 2.3.1 |
+| K2 加载方式 | 包内 `sdd-workbench.patch.yml` 插入一行，`name` 用相对路径指向本包；启动 `pnpm dsh web --patch packages/experimental/sdd-workbench/sdd-workbench.patch.yml`。依据：CLI 参考写明“插入行中的相对插件名以各自 patch 文件所在目录解析”；Client 模块注册表按最近的 package manifest 确定模块 id（`docs/subsystems/client-modules.zh.md:94`），仓库已有相对路径 patch 行先例（`packages/experimental/cua-macos/examples/macos.cordis.yml`）；`packages/experimental/AGENTS.md` 禁止 `apps/cli` 等发布包依赖实验性包，所以不能用裸包名 | 备选做成可选组合包并进官方插件目录（像 inspector-profile）：要改 `official-bundles`、`apps/cli`、发布清单与插件图形审批，超出作业范围 | **已验证（T1，2026-11-20）**：`name: './src/index.ts'` 经 `--dump-config` 解析到本包，带 patch 启动后引导页出现卡片 | 2.3.1 |
 | K3 状态管理 | 页面内 `useReducer` 管理加载状态、展开集合、文件清单缓存、过滤词；tab 类型声明 `keepMounted: true`，切换 tab 时保留状态 | 备选仿 `ui-sidebar-files` 的 store + face + Factory 分层（约 4000 行）：本需求单页面、无跨组件共享，不需要 | 无 | 2.1.2 |
 | K4 递归列目录 | 逐层调用 `list`，深度上限为模块常量 `MAX_DEPTH = 8`（根目录为第 0 层，最多列到第 8 层），防止工作区内符号链接成环时无限递归 | 不设上限：成环时请求不终止。做成插件配置：patch 行配置传不到浏览器端（评审 F4），且无 AC 需要 | 默认值 8 为 AI 选取；超过上限静默不展开，用户已确认（2026-11-20） | 2.3.2 |
 | K5 入口图标 | 不注册图标，使用引导页默认的立方体占位图标。仓库规则要求新图形经设计审批（`AGENTS.md` “Official plugin artwork”）；现有 `GuideArtworkFiles` 是“文件”页图标，复用会混淆 | 新绘图标需审批，作业周期内不可行 | 用户已确认（2026-11-20）；PRD AC-01“带图标”以占位图标满足 | 2.3.1 |
@@ -138,7 +138,7 @@ stateDiagram-v2
 
 Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/typert/protocol/src/types.ts:123-132`）。
 
-**插件对外**：注册 tab 类型 `{ id: '@deepseek-ai/dsh-sdd-workbench', kind: 'sdd-workbench', priority: 'builtin', keepMounted: true, guide: [...] }`；无其他导出。
+**插件对外**：注册 tab 类型 `{ id: '@deepseek-ai/dsh-sdd-workbench', kind: 'sdd-workbench', keepMounted: true, guide: [...] }`；无其他导出。`priority` 取默认值 `extension`：注册接口注释写明默认值用于产品外部插件，本包正属此类（T1 实施时修正，原写 `builtin`）。
 
 ### 2.2 配置变更
 
@@ -155,7 +155,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | `package.json` | `private: true`；依赖 `dsh-util-text-search`、`dsh-util-workspace-path`；`dsh.client.inject` 列出依赖的 Client 包；结构参照 `packages/experimental/client-ui-stats/package.json` |
 | `src/index.ts` | Host 半，空 `apply()`，无 `Config` |
 | `src/client/index.ts` | 注册 tab 类型、正文（inject 读取回调）、字典 |
-| `sdd-workbench.patch.yml` | `- insert: [{ id: sdd-workbench, name: ./ }]`（`name` 的确切写法由 T1 验证） |
+| `sdd-workbench.patch.yml` | `- insert: [{ id: sdd-workbench, name: './src/index.ts' }]`，写法沿用 `cua-macos/examples/macos.cordis.yml` 先例，T1 已验证 |
 | `locale/{en,zh,ja,es,fr,de,ru,pt}.json` | 插件元数据标题与描述，8 种发布语言（`scripts/verify-locale-metadata.ts`） |
 | `README.md`、`README.zh.md`、`README.i18n.yaml` | 安装、构建、启动、验证命令（FR-07），以及仓库要求的 Model Experience（`none`）与 Known Limitations 章节，按 `docs/AGENTS.md` 双语规范 |
 | `tsconfig.json`、`tsdown.config.ts` | 仿 `client-ui-stats` |
@@ -203,7 +203,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 
 | 风险与触发条件 | 影响 | 缓解措施 | 验证方式 |
 |---|---|---|---|
-| 相对路径 patch 行未被 Client 模块注册表识别（K2） | 插件无法加载，FR-07 失败 | T1 最小验证先行；失败时停下交用户在“组合包”方案与其他方案间选择 | T1：启动后浏览器加载到本包 `client.js`，引导页出现卡片 |
+| 相对路径 patch 行未被 Client 模块注册表识别（K2） | 插件无法加载，FR-07 失败 | T1 最小验证先行 | **已排除**（T1）：引导页出现卡片。另发现启动命令漏写 `--patch` 时插件静默缺席，README 需强调完整命令 |
 | 会话工作目录不是项目目录（用户截图显示当前会话在“默认工作区”） | 读不到 `mai-specs`，显示 COPY-06 | README 写明先在 DSH 中添加指向项目目录的工作区并在其中新建会话 | 人工验收步骤 |
 | Feature 目录内符号链接成环 | 递归不终止 | `MAX_DEPTH` 上限（K4）；Host `list` 已保证目标在工作区内 | 单元测试：模拟无限嵌套目录在上限处停止 |
 | ROADMAP 链接越界（`../../outside/...`、`../src/...`、`a/../../src/...`） | 读取工作区外内容或非规格目录 | `resolveFeatureDir` 归一化后判为 `outside`，不发请求；Host `list` 对越界目录也会拒绝（双重保护） | 单元测试（AC-07） |

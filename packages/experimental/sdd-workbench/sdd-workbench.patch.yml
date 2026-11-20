@@ -1,0 +1,5 @@
+# Load the SDD workbench into a Web profile: pnpm dsh web --patch packages/experimental/sdd-workbench/sdd-workbench.patch.yml
+# The relative plugin name resolves against this file's directory.
+- insert:
+    - id: sdd-workbench
+      name: './src/index.ts'
