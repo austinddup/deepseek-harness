@@ -21,9 +21,13 @@
 
 - 2026-11-18 范围：只读浏览 Feature 列表与规格文档；数据根为会话工作目录，文档复用右侧栏文档预览，列表按 ROADMAP 分区分组。详见 [PRD](spec/PRD.md) 待确认事项。
 - 2026-11-19 PRD 评审：文件清单含全部文件、新增列表过滤搜索、删除刷新快捷键、刷新失败保留旧列表。详见 [PRD 评审记录](review/prd_review.md)。
+- 2026-11-20 技术方案评审前：插件放实验性目录并设为私有包，入口用占位图标，Feature 目录限定在 `mai-specs/` 之下（已同步 PRD）。详见 [技术方案](design/TECH_DESIGN.md) 1.3。
+- 2026-11-20 技术方案评审：过滤改用 DSH Client 搜索规则（已同步 PRD BR-06），删除插件配置改为常量，文案覆盖 8 种发布语言。详见 [技术方案评审记录](review/design_review.md)。
 
 ## 上下文索引
 
 - [素材索引](context/_INDEX.md)
 - [PRD](spec/PRD.md)：有效需求与 AC 维护源
 - [PRD 评审记录](review/prd_review.md)
+- [技术方案](design/TECH_DESIGN.md)（[HTML 审阅版](design/TECH_DESIGN.html)、[代码设计附录](design/CODE_DESIGN.md)）：已评审，F1～F11 已修订
+- [技术方案评审记录](review/design_review.md)：2026-11-20 有条件通过，F1～F11 已修订

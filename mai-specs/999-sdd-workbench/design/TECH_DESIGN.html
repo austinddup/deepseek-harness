@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="zh-CN" data-generated-by="my-render-design-html">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <title>SDD 工作台</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=account_tree,code,database,folder,route,rule,schema,task_alt&amp;display=block">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github.min.css" media="(prefers-color-scheme: light)">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/styles/github-dark.min.css" media="(prefers-color-scheme: dark)">
+  <script defer src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
+  <!-- 下方样式和首屏 SVG 是示例，可按方案主题调整配色、字体与构图。 -->
+  <style>
+    :root {
+      color-scheme: light dark;
+      --system-accent: #315db6;
+      --accent: var(--project-accent, var(--system-accent));
+      --page: #f7f8fa;
+      --panel: #fff;
+      --soft: #eff1f5;
+      --ink: #172132;
+      --muted: #515d6d;
+      --line: #d9dee7;
+      font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--page);
+      color: var(--ink);
+    }
+    @supports (color: AccentColor) {
+      :root { --system-accent: AccentColor; }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #12161e;
+        --panel: #1a202b;
+        --soft: #222a38;
+        --ink: #edf0f5;
+        --muted: #b1bdd0;
+        --line: #384353;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      max-width: 76rem;
+      margin: 0 auto;
+      padding: 0 clamp(1rem, 4vw, 3.5rem);
+      line-height: 1.7;
+      accent-color: var(--accent);
+    }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: .25em; }
+    p, ul { margin: .6rem 0 0; }
+    h1, h2, h3 { margin: 0; line-height: 1.25; }
+    h1 { font-size: clamp(2.35rem, 4.4vw, 3.75rem); letter-spacing: -.045em; text-wrap: balance; }
+    h2 { font-size: clamp(1.45rem, 3vw, 2rem); }
+    h3 { font-size: 1.12rem; }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+      gap: clamp(1.25rem, 4vw, 3rem);
+      align-items: center;
+      padding-block: clamp(2.5rem, 8vw, 6rem) clamp(1.75rem, 5vw, 3.5rem);
+      border-top: 4px solid var(--accent);
+    }
+    .eyebrow { margin: 0 0 .8rem; color: var(--muted); font-size: .85rem; font-weight: 650; }
+    .lead { max-width: 32em; margin-top: 1rem; color: var(--muted); font-size: 1.1rem; }
+    .hero-graphic, .diagram, .table-scroll {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 1rem;
+      background: var(--panel);
+    }
+    .hero-graphic { margin: 0; padding: clamp(.6rem, 1.6vw, 1.15rem); }
+    .hero-graphic svg { display: block; width: 100%; height: auto; color: var(--ink); }
+    .hero-graphic .track { fill: none; stroke: var(--line); }
+    .hero-graphic .route { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+    .hero-graphic .arrow { fill: var(--accent); }
+    .hero-graphic .node { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+    .hero-graphic .node-primary { fill: var(--soft); stroke: var(--accent); stroke-width: 2; }
+    .hero-graphic .node-kind { fill: var(--muted); font-size: 15px; }
+    .hero-graphic .node-label { fill: currentColor; font-size: 21px; font-weight: 650; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem 1.25rem;
+      padding-block: .8rem;
+      border-block: 1px solid var(--line);
+      font-size: .92rem;
+    }
+    main { padding-bottom: 4rem; }
+    section { padding-block: clamp(1.55rem, 4vw, 2.75rem); border-bottom: 1px solid var(--line); }
+    section > p, section > ul { max-width: 58em; }
+    section > h3 { margin-top: 1.4rem; }
+    figure { margin: 1rem 0 0; }
+    .diagram, .table-scroll { padding: clamp(.75rem, 2vw, 1.25rem); }
+    .diagram-output, .table-scroll, pre { overflow-x: auto; }
+    .diagram-output > svg {
+      display: block;
+      width: clamp(calc(var(--diagram-width) * .85), 100%, var(--diagram-width));
+      max-width: none !important;
+      height: auto;
+      margin-inline: auto;
+    }
+    figcaption, summary { color: var(--muted); font-size: .9rem; }
+    .diagram-output:not([hidden]) + figcaption { margin-top: .8rem; }
+    summary { cursor: pointer; margin-top: .45rem; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: .5rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    pre, code { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
+    pre {
+      margin: .7rem 0 0;
+      padding: .9rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: .65rem;
+      background: var(--soft);
+      font-size: .88rem;
+      line-height: 1.6;
+      tab-size: 2;
+    }
+    pre > code.hljs { padding: 0; background: transparent; }
+    :not(pre) > code { overflow-wrap: anywhere; }
+    .material-symbols-outlined { display: none; }
+    .symbols-ready .material-symbols-outlined {
+      display: inline-block;
+      margin-inline-end: .4rem;
+      vertical-align: -.12em;
+      color: var(--muted);
+      font: normal 1.25rem/1 "Material Symbols Outlined";
+      font-feature-settings: "liga";
+      white-space: nowrap;
+    }
+    .code-label { margin: 1.4rem 0 0; color: var(--muted); font-size: .9rem; }
+    @media (max-width: 46rem) {
+      .hero { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">技术方案 · 开发者审阅</p>
+      <h1>SDD 工作台</h1>
+      <p class="lead">在 DSH Web 右侧栏浏览当前项目 mai-specs 的 Feature，并用已有的文档预览只读查看规格文件。</p>
+    </div>
+    <figure class="hero-graphic">
+      <svg viewBox="0 0 530 230" role="img" aria-labelledby="hero-title hero-desc">
+        <title id="hero-title">SDD 工作台主路径</title>
+        <desc id="hero-desc">ROADMAP 经插件解析为分组列表，点击文件后交给文档预览。</desc>
+        <defs>
+          <marker id="hero-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path class="arrow" d="M0 0 L8 4 L0 8 Z"></path>
+          </marker>
+        </defs>
+        <path class="track" d="M18 43H512 M18 187H512 M265 16V214" stroke-dasharray="4 5"></path>
+        <path class="route" d="M145 116H186" marker-end="url(#hero-arrow)"></path>
+        <path class="route" d="M342 116H382" marker-end="url(#hero-arrow)"></path>
+        <rect class="node" x="14" y="81" width="130" height="70" rx="10"></rect>
+        <rect class="node-primary" x="187" y="69" width="155" height="94" rx="12"></rect>
+        <rect class="node" x="384" y="81" width="132" height="70" rx="10"></rect>
+        <g text-anchor="middle">
+          <text class="node-kind" x="79" y="105">读取</text>
+          <text class="node-label" x="79" y="131">ROADMAP.md</text>
+          <text class="node-kind" x="265" y="105">新增插件</text>
+          <text class="node-label" x="265" y="131">SDD 工作台</text>
+          <text class="node-kind" x="450" y="105">复用</text>
+          <text class="node-label" x="450" y="131">文档预览</text>
+        </g>
+      </svg>
+      <figcaption>插件只做中间一环：解析与导航；读取和预览都用 DSH 已有能力。</figcaption>
+    </figure>
+  </header>
+  <nav aria-label="页内目录">
+    <a href="#principles">设计原则</a>
+    <a href="#architecture">整体架构</a>
+    <a href="#data">数据结构</a>
+    <a href="#flow">数据流程</a>
+    <a href="#modules">模块抽象</a>
+    <a href="#files">变更文件</a>
+    <a href="#code">核心代码</a>
+    <a href="#summary">方案小结</a>
+  </nav>
+  <main>
+    <section id="principles">
+<h2><span class="material-symbols-outlined" aria-hidden="true">rule</span>设计原则</h2>
+<ul>
+<li><b>只做 Client 插件。</b>Host 侧无逻辑，不新增接口；读取全部复用 <code>remote.workspaceFiles</code> 的 <code>read</code> 与 <code>list</code>。</li>
+<li><b>只读且不出 mai-specs。</b><code>read</code> 本身允许读工作区外路径，所以插件只读固定相对路径 <code>mai-specs/ROADMAP.md</code>；Feature 目录先在插件内归一化，必须位于 <code>mai-specs/</code> 之下，再交给只能列工作区内目录的 <code>list</code>，形成双重保护。</li>
+<li><b>纯函数承载规则。</b>解析、越界判断、排序、过滤都不依赖 React 与网络；页面组件只管状态与渲染，读取能力以回调注入，组件不接触 <code>ctx</code>。</li>
+<li><b>遵守仓库通用规则。</b>过滤用仓库统一的 <code>TextSearchIndex</code>（编号、标题模糊匹配，路径子串匹配，多词，按匹配度排序）；文案覆盖 8 种发布语言。</li>
+<li><b>复用现成能力。</b>引导页卡片、文档预览、文件地址函数、UI 基础组件都用已有的；不自绘 Markdown，不新画图标，不加插件配置。</li>
+</ul>
+</section>
+<section id="architecture">
+<h2><span class="material-symbols-outlined" aria-hidden="true">account_tree</span>整体架构</h2>
+<figure class="diagram" data-diagram>
+  <div class="diagram-output" tabindex="0" hidden></div>
+  <figcaption>新增包内五个模块：入口负责注册并注入读取回调，页面调用三个纯函数模块；向外只依赖四个已有能力，patch 文件在启动时把插件挂进去。</figcaption>
+  <details><summary>查看图源</summary><pre data-mermaid>flowchart LR
+  accTitle: 整体架构
+  subgraph PKG[&quot;新增包 packages/experimental/sdd-workbench&quot;]
+    IDX[&quot;client/index.ts：注册 tab、正文、字典，注入读取回调&quot;]
+    BODY[&quot;WorkbenchBody.tsx：页面与状态&quot;]
+    RM[&quot;roadmap.ts：解析 ROADMAP&quot;]
+    FL[&quot;feature-files.ts：递归列文件&quot;]
+    FT[&quot;filter.ts：过滤&quot;]
+  end
+  IDX --&gt;|&quot;inject readRoadmap / listDirectory&quot;| BODY
+  IDX --&gt;|&quot;read / list&quot;| WF[(&quot;remote.workspaceFiles（已有）&quot;)]
+  BODY --&gt; RM
+  BODY --&gt; FL
+  BODY --&gt; FT
+  FT --&gt; TS[&quot;TextSearchIndex（已有）&quot;]
+  BODY --&gt;|&quot;openResource&quot;| DP[&quot;文档预览（已有）&quot;]
+  IDX --&gt;|&quot;register&quot;| SR[&quot;ctx.sidebarRightTabs（已有）&quot;]
+  PATCH[&quot;sdd-workbench.patch.yml&quot;] -.-&gt;|&quot;pnpm dsh web --patch&quot;| IDX</pre></details>
+</figure>
+</section>
+<section id="data">
+<h2><span class="material-symbols-outlined" aria-hidden="true">database</span>数据结构</h2>
+<figure class="diagram" data-diagram>
+  <div class="diagram-output" tabindex="0" hidden></div>
+  <figcaption>全部是内存中的视图数据，不持久化；行键用“分区 + 链接原文 + 出现序号”，插入其他行时不漂移；文件清单按 Feature 目录缓存。</figcaption>
+  <details><summary>查看图源</summary><pre data-mermaid>classDiagram
+  accTitle: 核心类型
+  class RoadmapFeature {
+    +string key
+    +SectionKey section
+    +string id
+    +string title
+    +string priority
+    +string link
+    +FeatureDir dir
+  }
+  class FeatureDir {
+    &lt;&lt;union&gt;&gt;
+    +inside(path)
+    +outside()
+  }
+  class FileListing {
+    &lt;&lt;union&gt;&gt;
+    +loading()
+    +ok(files)
+    +missing()
+    +failed(reason)
+  }
+  class Load {
+    &lt;&lt;union&gt;&gt;
+    +noWorkspace()
+    +loading()
+    +uninitialized()
+    +failed(reason)
+    +ready(roadmap, refreshing, refreshError)
+  }
+  RoadmapFeature --&gt; FeatureDir
+  Load --&gt; RoadmapFeature : ready 按分区持有
+  FileListing &lt;-- Load : 缓存按 Feature 目录作键</pre></details>
+</figure>
+</section>
+<section id="flow">
+<h2><span class="material-symbols-outlined" aria-hidden="true">route</span>数据流程</h2>
+<figure class="diagram" data-diagram>
+  <div class="diagram-output" tabindex="0" hidden></div>
+  <figcaption>主路径：读 ROADMAP，展开时逐层列目录，点击时交给文档预览；越界链接在插件内拦下，不发请求。</figcaption>
+  <details><summary>查看图源</summary><pre data-mermaid>sequenceDiagram
+  accTitle: 主路径时序
+  actor U as 用户
+  participant G as 引导页
+  participant B as WorkbenchBody
+  participant W as remote.workspaceFiles
+  participant P as 文档预览
+  U-&gt;&gt;G: 点击 SDD 工作台卡片
+  G-&gt;&gt;B: 打开页面 tab
+  B-&gt;&gt;W: read(mai-specs/ROADMAP.md) 分页到 eof（经注入回调）
+  W--&gt;&gt;B: 文本 / not-found / 其他错误
+  B-&gt;&gt;B: parseRoadmap 按分区分组
+  U-&gt;&gt;B: 展开 Feature
+  B-&gt;&gt;B: resolveFeatureDir，越界则不发请求
+  B-&gt;&gt;W: list(目录) 逐层，最多 8 层（经注入回调）
+  W--&gt;&gt;B: 条目 / not-found / outside-workspace / 其他错误
+  U-&gt;&gt;B: 点击文件
+  B-&gt;&gt;P: openResource(fileAddressFor(...))
+  P--&gt;&gt;U: 渲染预览，已打开则聚焦原 tab</pre></details>
+</figure>
+<figure class="diagram" data-diagram>
+  <div class="diagram-output" tabindex="0" hidden></div>
+  <figcaption>首次加载失败整页报错；已显示列表后刷新失败则保留旧列表，只在顶部提示。</figcaption>
+  <details><summary>查看图源</summary><pre data-mermaid>stateDiagram-v2
+  accTitle: 页面状态
+  [*] --&gt; NoWorkspace: 会话无工作目录
+  [*] --&gt; Loading: 有工作目录
+  Loading --&gt; Uninitialized: not-found
+  Loading --&gt; Failed: 其他错误
+  Loading --&gt; Ready: 解析成功
+  Ready --&gt; Refreshing: 点击刷新
+  Refreshing --&gt; Ready: 成功或失败（失败时保留旧列表并提示）
+  Failed --&gt; Loading: 刷新
+  Uninitialized --&gt; Loading: 刷新</pre></details>
+</figure>
+</section>
+<section id="modules">
+<h2><span class="material-symbols-outlined" aria-hidden="true">schema</span>模块抽象</h2>
+<figure class="diagram" data-diagram>
+  <div class="diagram-output" tabindex="0" hidden></div>
+  <figcaption>三个纯函数模块被页面组件调用；过滤在解析结果和文件清单上建立搜索索引。</figcaption>
+  <details><summary>查看图源</summary><pre data-mermaid>classDiagram
+  accTitle: 模块与函数签名
+  class roadmap_ts {
+    +parseRoadmap(markdown) Roadmap
+    +resolveFeatureDir(target) FeatureDir
+  }
+  class feature_files_ts {
+    +MAX_DEPTH = 8
+    +listFeatureFiles(list, dir, signal) FileListing
+    +sortFiles(files) string[]
+  }
+  class filter_ts {
+    +buildIndex(roadmap, filesOf) TextSearchIndex
+    +filterFeatures(index, filesOf, query) Result
+  }
+  class TextSearchIndex {
+    &lt;&lt;已有&gt;&gt;
+    +search(query)
+  }
+  class WorkbenchBody {
+    -useReducer state
+    -refresh()
+    -fetchFiles(dir)
+  }
+  class client_index_ts {
+    +apply(ctx)
+    -inject readRoadmap / listDirectory
+  }
+  client_index_ts --&gt; WorkbenchBody
+  WorkbenchBody --&gt; roadmap_ts
+  WorkbenchBody --&gt; feature_files_ts
+  WorkbenchBody --&gt; filter_ts
+  filter_ts --&gt; roadmap_ts
+  filter_ts --&gt; TextSearchIndex</pre></details>
+</figure>
+</section>
+<section id="files">
+<h2><span class="material-symbols-outlined" aria-hidden="true">folder</span>变更文件</h2>
+<p class="code-label">目录树（+ 新增，! 修改）</p>
+<pre tabindex="0"><code class="language-diff">  packages/experimental/sdd-workbench/
++ ├── package.json                    private 实验性包，声明 dsh.client，依赖 text-search
++ ├── sdd-workbench.patch.yml         启动时插入插件行（相对路径名）
++ ├── src/index.ts                    Host 半：空 apply，无配置
++ ├── src/client/index.ts             注册 tab 类型、正文、字典，注入读取回调
++ ├── src/client/roadmap.ts           ROADMAP 解析与越界判断
++ ├── src/client/feature-files.ts     递归列文件与排序
++ ├── src/client/filter.ts            列表过滤（TextSearchIndex）
++ ├── src/client/WorkbenchBody.tsx    页面与状态
++ ├── src/client/locales.ts           8 种发布语言字典
++ ├── locale/*.json                   8 种语言的插件元数据标题与描述
++ ├── tests/                          纯函数单元测试与组件测试
++ └── README.md, README.zh.md, README.i18n.yaml   含 Model Experience 与 Known Limitations
+! scripts/experimental-package-policy.ts   登记名称例外与私有包目录
+! tsconfig.client.json                     aggregate references 登记新包
+! packages/experimental/README*.md         实验包表登记</code></pre>
+</section>
+<section id="code">
+<h2><span class="material-symbols-outlined" aria-hidden="true">code</span>核心代码</h2>
+<p class="code-label">拟议代码 · roadmap.ts · parseRoadmap：按表头名定位列，兼容四列与五列；无效行跳过，缺失分区视为空；行键不依赖行序号</p>
+<pre tabindex="0"><code class="language-ts">/** ROADMAP 的三个二级标题，按显示顺序排列。 */
+export const SECTIONS = [
+  { key: &#x27;in-progress&#x27;, heading: &#x27;进行中&#x27; },
+  { key: &#x27;planned&#x27;, heading: &#x27;规划中&#x27; },
+  { key: &#x27;done&#x27;, heading: &#x27;已完成&#x27; },
+] as const
+export type SectionKey = typeof SECTIONS[number][&#x27;key&#x27;]
+
+export type FeatureDir =
+  | { readonly kind: &#x27;inside&#x27;; readonly path: string } // mai-specs/ 之下的工作区相对路径，如 &#x27;mai-specs/999-sdd-workbench&#x27;
+  | { readonly kind: &#x27;outside&#x27; }
+
+export interface RoadmapFeature {
+  /** 行键：`${section}:${link}:${同分区同链接的出现序号}`。插入或删除其他行不会改变它。 */
+  readonly key: string
+  readonly section: SectionKey
+  readonly id: string
+  readonly title: string
+  /** 空单元格为 undefined，界面不显示。 */
+  readonly priority: string | undefined
+  /** 标题列链接原文，用于“目录缺失”提示中的路径。 */
+  readonly link: string
+  readonly dir: FeatureDir
+}
+
+export type Roadmap = Readonly&lt;Record&lt;SectionKey, readonly RoadmapFeature[]&gt;&gt;
+
+export function parseRoadmap(markdown: string): Roadmap {
+  const result: Record&lt;SectionKey, RoadmapFeature[]&gt; = { &#x27;in-progress&#x27;: [], planned: [], done: [] }
+  for (const { key: section, heading } of SECTIONS) {
+    const body = sectionBody(markdown, heading)   // 该 `## heading` 到下一个 `## ` 之间的文本；缺失 → undefined
+    if (body === undefined) continue               // 缺失分区视为空
+    const table = firstTable(body)                 // 第一组连续的 `|` 行：表头、分隔行、数据行；没有 → undefined
+    if (table === undefined) continue
+    const col = columnIndex(table.header)          // 按表头文字找“需求”“标题”“优先级”的列号
+    if (col === undefined) continue                // 缺“需求”或“标题”列 → 无法识别，视为空分区
+    const seen = new Map&lt;string, number&gt;()         // 链接原文 → 已出现次数，区分重复行
+    for (const cells of table.rows) {
+      const row = parseRow(cells, col)
+      if (row === undefined) continue              // 无效行跳过
+      const n = seen.get(row.link) ?? 0
+      seen.set(row.link, n + 1)
+      result[section].push({ ...row, section, key: `${section}:${row.link}:${n}` })
+    }
+  }
+  return result
+}
+
+function parseRow(cells: readonly string[], col: Columns): Omit&lt;RoadmapFeature, &#x27;key&#x27; | &#x27;section&#x27;&gt; | undefined {
+  const id = cells[col.id]?.trim()
+  const link = firstMarkdownLink(cells[col.title] ?? &#x27;&#x27;)   // `[text](target)` → { text, target }
+  if (!id || link === undefined || !link.text.trim()) return undefined
+  const dir = resolveFeatureDir(link.target)
+  if (dir === undefined) return undefined                   // URL / 绝对路径 / 锚点 / 无法解码 → 无效行
+  const priority = col.priority === undefined ? undefined : cells[col.priority]?.trim() || undefined
+  return { id, title: link.text.trim(), priority, link: link.target, dir }
+}</code></pre>
+<p class="code-label">拟议代码 · roadmap.ts · resolveFeatureDir：拒绝 URL、绝对路径、锚点；先解码再归一化，父目录不在 mai-specs/ 之下即越界</p>
+<pre tabindex="0"><code class="language-ts">const SCHEME = /^[a-z][a-z0-9+.-]*:/i
+
+/**
+ * @returns undefined：不是可用的相对路径链接（行无效）；outside：不在 mai-specs/ 之下；inside：mai-specs/ 下的工作区相对目录。
+ */
+export function resolveFeatureDir(target: string): FeatureDir | undefined {
+  let t = target.trim()
+  if (t.startsWith(&#x27;&lt;&#x27;) &amp;&amp; t.endsWith(&#x27;&gt;&#x27;)) t = t.slice(1, -1)          // CommonMark 尖括号链接 `&lt;a b/BRIEF.md&gt;`
+  if (t === &#x27;&#x27; || t.startsWith(&#x27;#&#x27;) || t.startsWith(&#x27;/&#x27;) || t.startsWith(&#x27;\\&#x27;) || SCHEME.test(t)) return undefined
+  const raw = t.split(/[?#]/)[0]                                         // 去掉查询串与锚点
+  let decoded: string
+  try { decoded = decodeURIComponent(raw) } catch { return undefined }   // `%E4%BD` 等非法编码 → 无效行
+  // 以 mai-specs/ 为基准做 POSIX 归一化：处理 &#x27;.&#x27;、&#x27;..&#x27;、重复斜杠、反斜杠。
+  const file = posixNormalize(`mai-specs/${decoded.replace(/\\/g, &#x27;/&#x27;)}`)
+  const parent = file.includes(&#x27;/&#x27;) ? file.slice(0, file.lastIndexOf(&#x27;/&#x27;)) : &#x27;&#x27;
+  // 前缀判断必须在归一化之后：&#x27;..&#x27; 开头（工作区外）、&#x27;src&#x27;（工作区内其他目录）、&#x27;mai-specs&#x27; 本身都不是 Feature 目录。
+  if (!parent.startsWith(&#x27;mai-specs/&#x27;)) return { kind: &#x27;outside&#x27; }
+  return { kind: &#x27;inside&#x27;, path: parent }
+}</code></pre>
+<p class="code-label">拟议代码 · feature-files.ts · listFeatureFiles：根目录缺失或越界记为缺失，其他错误整体记为失败；深度上限防止链接成环</p>
+<pre tabindex="0"><code class="language-ts">/** 根目录为第 0 层，最多列到第 8 层。防止工作区内符号链接成环。 */
+export const MAX_DEPTH = 8
+
+export type FileListing =
+  | { readonly kind: &#x27;loading&#x27; }
+  | { readonly kind: &#x27;ok&#x27;; readonly files: readonly string[] }   // 相对 Feature 目录的路径
+  | { readonly kind: &#x27;missing&#x27; }                                 // 目录缺失
+  | { readonly kind: &#x27;failed&#x27;; readonly reason: string }         // 目录读取失败
+
+/** 由 client/index.ts 闭包 ctx.remote.workspaceFiles.list 后注入。 */
+export type ListDirectory = (path: string, signal: AbortSignal) =&gt;
+  Promise&lt;{ ok: true; entries: readonly WorkspaceDirectoryEntry[] } | { ok: false; code: string; message: string }&gt;
+
+export async function listFeatureFiles(list: ListDirectory, dir: string, signal: AbortSignal): Promise&lt;FileListing&gt; {
+  const files: string[] = []
+  let level: string[] = [&#x27;&#x27;]                                     // 相对 dir 的待列目录
+  for (let depth = 0; level.length &gt; 0 &amp;&amp; depth &lt;= MAX_DEPTH; depth++) {
+    const next: string[] = []
+    for (const rel of level) {
+      const answer = await list(rel === &#x27;&#x27; ? dir : `${dir}/${rel}`, signal)
+      if (!answer.ok) {
+        const rootMissing = rel === &#x27;&#x27; &amp;&amp; (answer.code === &#x27;workspace-file/not-found&#x27; || answer.code === &#x27;workspace-file/outside-workspace&#x27;)
+        return rootMissing ? { kind: &#x27;missing&#x27; } : { kind: &#x27;failed&#x27;, reason: answer.message }
+      }
+      for (const entry of answer.entries) {
+        if (entry.name.startsWith(&#x27;.&#x27;)) continue                 // 隐藏文件不列出
+        const path = rel === &#x27;&#x27; ? entry.name : `${rel}/${entry.name}`
+        if (entry.type === &#x27;directory&#x27;) next.push(path)
+        else files.push(path)                                    // &#x27;file&#x27; 与 &#x27;other&#x27; 都列出，由预览决定能否打开
+      }
+    }
+    level = next
+  }
+  return { kind: &#x27;ok&#x27;, files: sortFiles(files) }
+}
+
+/** BRIEF.md 置顶，其余按 UTF-16 码点序（确定性，不受界面语言影响）。 */
+export function sortFiles(files: readonly string[]): string[] {
+  return [...files].sort((a, b) =&gt; a === &#x27;BRIEF.md&#x27; ? -1 : b === &#x27;BRIEF.md&#x27; ? 1 : a &lt; b ? -1 : a &gt; b ? 1 : 0)
+}</code></pre>
+<p class="code-label">拟议代码 · filter.ts · buildIndex / filterFeatures：每个文件一项并携带所属 Feature 的编号与标题；编号或标题命中显示全部文件，仅文件命中只显示命中文件；组内按匹配度排序</p>
+<pre tabindex="0"><code class="language-ts">/** 每个 Feature 一项（path 为 undefined），每个已列出的文件一项；文件项也带所属 Feature 的编号和标题，让 `999 prd` 这类多词查询能命中。 */
+interface Item { readonly feature: RoadmapFeature; readonly path: string | undefined }
+
+const keys = (item: Item): SearchKeys =&gt; ({
+  fuzzy: [item.feature.id, item.feature.title],                  // 编号、标题：子串或词首模糊匹配
+  substring: item.path === undefined ? [] : [item.path],         // 路径：只按连续子串匹配
+})
+
+export type FilesOf = (dir: string) =&gt; FileListing | undefined
+
+export function buildIndex(roadmap: Roadmap, filesOf: FilesOf): TextSearchIndex&lt;Item&gt; {
+  const items: Item[] = []
+  for (const { key } of SECTIONS) {
+    for (const feature of roadmap[key]) {
+      items.push({ feature, path: undefined })
+      const listing = feature.dir.kind === &#x27;inside&#x27; ? filesOf(feature.dir.path) : undefined
+      if (listing?.kind === &#x27;ok&#x27;) for (const path of listing.files) items.push({ feature, path })
+    }
+  }
+  return new TextSearchIndex(items, keys)
+}
+
+export interface FilteredFeature {
+  readonly feature: RoadmapFeature
+  /** undefined：编号或标题命中，展开时显示全部文件；数组：仅文件命中，强制展开且只显示这些。 */
+  readonly onlyFiles: readonly string[] | undefined
+}
+
+export function filterFeatures(
+  index: TextSearchIndex&lt;Item&gt;, filesOf: FilesOf, query: string,
+): Readonly&lt;Record&lt;SectionKey, readonly FilteredFeature[]&gt;&gt; | &#x27;all&#x27; {
+  if (query.trim() === &#x27;&#x27;) return &#x27;all&#x27;                          // 空关键词：完整列表与原展开状态
+  const whole = new Set&lt;string&gt;()                                // Feature 项命中的行键
+  const hits = new Map&lt;string, Set&lt;string&gt;&gt;()                    // 行键 → 命中的文件
+  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持 ROADMAP 顺序）
+  for (const { feature, path } of index.search(query)) {
+    if (!whole.has(feature.key) &amp;&amp; !hits.has(feature.key)) order.push(feature)
+    if (path === undefined) whole.add(feature.key)
+    else (hits.get(feature.key) ?? hits.set(feature.key, new Set()).get(feature.key)!).add(path)
+  }
+  const out = { &#x27;in-progress&#x27;: [], planned: [], done: [] } as Record&lt;SectionKey, FilteredFeature[]&gt;
+  for (const feature of order) {
+    if (whole.has(feature.key)) { out[feature.section].push({ feature, onlyFiles: undefined }); continue }
+    const listing = feature.dir.kind === &#x27;inside&#x27; ? filesOf(feature.dir.path) : undefined
+    const matched = hits.get(feature.key)!
+    // 文件按清单原顺序显示，不按匹配度
+    const onlyFiles = listing?.kind === &#x27;ok&#x27; ? listing.files.filter(f =&gt; matched.has(f)) : []
+    out[feature.section].push({ feature, onlyFiles })
+  }
+  return out
+}</code></pre>
+<p class="code-label">伪代码 · WorkbenchBody.tsx · load：刷新失败时保留旧列表并记录错误</p>
+<pre tabindex="0"><code class="language-ts">type Load =
+  | { readonly kind: &#x27;no-workspace&#x27; }
+  | { readonly kind: &#x27;loading&#x27; }
+  | { readonly kind: &#x27;uninitialized&#x27; }
+  | { readonly kind: &#x27;failed&#x27;; readonly reason: string }
+  | { readonly kind: &#x27;ready&#x27;; readonly roadmap: Roadmap; readonly refreshing: boolean; readonly refreshError: string | undefined }
+
+/** 一次加载或刷新；读取失败时，已有列表保留并附带 refreshError。 */
+async function load(prev: Load, read: ReadRoadmap, signal: AbortSignal): Promise&lt;Load&gt; {
+  const answer = await read(signal)                              // 分页读到 eof 并拼接；read 为注入的回调
+  if (answer.ok) return { kind: &#x27;ready&#x27;, roadmap: parseRoadmap(answer.text), refreshing: false, refreshError: undefined }
+  if (prev.kind === &#x27;ready&#x27;) return { ...prev, refreshing: false, refreshError: answer.message } // 保留旧列表
+  return answer.code === &#x27;workspace-file/not-found&#x27; ? { kind: &#x27;uninitialized&#x27; } : { kind: &#x27;failed&#x27;, reason: answer.message }
+}</code></pre>
+<p class="code-label">伪代码 · WorkbenchBody.tsx · refresh / fetchFiles：刷新成功后清空缓存再重列；ROADMAP 与文件清单请求都用代次丢弃迟到结果</p>
+<pre tabindex="0"><code class="language-ts">// 组件内（示意）。readRoadmap、listDirectory 来自 inject 回调。
+const generation = useRef(0)
+
+const refresh = useCallback(() =&gt; {
+  const mine = ++generation.current
+  controller.current?.abort(); controller.current = new AbortController()
+  dispatch({ type: &#x27;start&#x27; })                                   // ready → refreshing=true；其他 → loading
+  void load(stateRef.current.load, readRoadmap, controller.current.signal).then((next) =&gt; {
+    if (mine !== generation.current) return                      // 被更新的刷新取代
+    dispatch({ type: &#x27;loaded&#x27;, load: next })
+    if (next.kind !== &#x27;ready&#x27; || next.refreshError !== undefined) return // 失败：缓存不动
+    dispatch({ type: &#x27;clear-cache&#x27; })                            // 未展开 Feature 的旧清单一并清除
+    for (const dir of expandedDirs(next.roadmap, stateRef.current.expanded)) fetchFiles(dir)
+    if (stateRef.current.query.trim() !== &#x27;&#x27;) for (const dir of insideDirs(next.roadmap)) fetchFiles(dir) // })
+}, [/* … */])
+
+/** 列一个目录并写缓存；代次已变时丢弃结果。同一目录已有 loading/ok 时不重复请求。 */
+const fetchFiles = (dir: string) =&gt; {
+  const mine = generation.current
+  if (stateRef.current.files.has(dir)) return
+  dispatch({ type: &#x27;files&#x27;, dir, listing: { kind: &#x27;loading&#x27; } })
+  void listFeatureFiles(listDirectory, dir, controller.current!.signal).then((listing) =&gt; {
+    if (mine !== generation.current) return                      // 被刷新取代或已卸载，不写缓存
+    dispatch({ type: &#x27;files&#x27;, dir, listing })
+  })
+}</code></pre>
+<p class="code-label">伪代码 · WorkbenchBody.tsx · 过滤视图的展开：文件命中自动展开，用户操作只作用于过滤视图，清空关键词后恢复原状态</p>
+<pre tabindex="0"><code class="language-ts">// expanded：用户在无关键词时的展开集合（行键），过滤期间只读。
+// filterToggled：过滤视图中用户点过的行键，关键词清空时清空。
+const defaultOpen = (f: FilteredFeature) =&gt;
+  f.onlyFiles !== undefined || state.expanded.has(f.feature.key)            // 文件命中自动展开；编号/标题命中沿用原状态
+const isOpen = (f: FilteredFeature) =&gt; query === &#x27;&#x27;
+  ? state.expanded.has(f.feature.key)
+  : defaultOpen(f) !== state.filterToggled.has(f.feature.key)               // 点一次翻转一次
+// 关键词清空 → filterToggled 清空，回到 expanded）</code></pre>
+</section>
+<section id="summary">
+<h2><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>方案小结</h2>
+<p>只新增一个实验性 Client 插件包：在右侧栏注册“SDD 工作台”页，用已有的工作区文件接口读取 <code>mai-specs</code>，用已有的文档预览打开文件。最关键的取舍是加载方式：用包内 patch 文件的相对路径插件名启动，避免发布包依赖实验性包；这一点尚未验证，实施的第一步先做最小验证。</p>
+</section>
+  </main>
+  <script type="module">
+    window.hljs?.highlightAll();
+    document.fonts.load('20px "Material Symbols Outlined"').then(fonts => {
+      if (fonts.length) document.documentElement.classList.add('symbols-ready');
+    }).catch(() => {});
+
+    const diagrams = [...document.querySelectorAll('[data-diagram]')];
+    if (diagrams.length) {
+      try {
+        const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11.16.0/dist/mermaid.esm.min.mjs');
+        const colorScheme = matchMedia('(prefers-color-scheme: dark)');
+        let pending = Promise.resolve();
+        let renderedTheme;
+
+        async function renderDiagrams() {
+          const theme = colorScheme.matches ? 'dark' : 'neutral';
+          if (theme === renderedTheme) return;
+          mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            suppressErrorRendering: true,
+            htmlLabels: false,
+            theme,
+            fontFamily: getComputedStyle(document.body).fontFamily
+          });
+          for (const [index, figure] of diagrams.entries()) {
+            const output = figure.querySelector('.diagram-output');
+            const source = figure.querySelector('[data-mermaid]');
+            try {
+              const { svg } = await mermaid.render(`review-${theme}-${index + 1}`, source.textContent.trim());
+              output.innerHTML = svg;
+              const drawing = output.querySelector('svg');
+              drawing.style.setProperty('--diagram-width', `${drawing.viewBox.baseVal.width}px`);
+              output.hidden = false;
+              source.closest('details').hidden = true;
+            } catch (error) {
+              output.hidden = true;
+              source.closest('details').hidden = false;
+              console.warn('图表未能绘制', error);
+            }
+          }
+          renderedTheme = theme;
+        }
+
+        function scheduleRender() {
+          pending = pending.then(renderDiagrams);
+        }
+
+        colorScheme.addEventListener('change', scheduleRender);
+        scheduleRender();
+      } catch (error) {
+        console.warn('图表组件未能加载', error);
+      }
+    }
+  </script>
+</body>
+</html>

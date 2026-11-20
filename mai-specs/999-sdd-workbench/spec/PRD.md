@@ -1,6 +1,6 @@
 # PRD：SDD 工作台：Feature 导航与规格查看
 
-> 状态：已评审，待技术方案 | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
+> 状态：已评审（2026-11-20 随技术方案评审修订） | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
 
 [返回需求简报](../BRIEF.md)
 
@@ -99,7 +99,7 @@ flowchart LR
 | 无 Feature | ROADMAP 存在但三个分区都没有 Feature 行 | COPY-07 | 创建 Feature 后点刷新 |
 | 读取失败 | 首次读取 ROADMAP 出错（权限、IO、不是普通文件、无法解码等） | 整页显示 COPY-08，并显示刷新按钮 | 点刷新重试 |
 | 刷新失败 | 列表已显示后再次读取 ROADMAP 出错 | 保留上次的列表，顶部显示 COPY-14 | 点刷新重试；成功后提示消失 |
-| Feature 目录缺失 | ROADMAP 有该行，但目录不存在或位于工作目录之外 | 展开后显示 COPY-09 | 修正目录或 ROADMAP 后刷新 |
+| Feature 目录缺失 | ROADMAP 有该行，但目录不存在或位于 `mai-specs/` 之外 | 展开后显示 COPY-09 | 修正目录或 ROADMAP 后刷新 |
 | 目录读取失败 | 目录存在但无法列出（无权限、IO 错误、不是目录等） | 展开后显示 COPY-13 | 修复后点刷新 |
 | 目录为空 | Feature 目录下没有文件 | 展开后显示 COPY-10 | 添加文件后点刷新 |
 | 文件打开失败 | 点击时文件已删除或无法读取 | 由文档预览显示其已有的文件状态与错误提示；工作台列表不变 | 刷新列表 |
@@ -115,12 +115,12 @@ flowchart LR
 | BR-02 | Feature 列表以 `ROADMAP.md` 为唯一来源：只识别“规划中”“进行中”“已完成”三个二级标题下的表格；每行取“需求”列为编号、“标题”列链接文字为标题、“优先级”列为优先级；Feature 目录为标题列中第一个相对路径链接的目标文件的父目录（my-ai-infra 生成的链接指向 `NNN-slug/BRIEF.md`），相对 `ROADMAP.md` 所在目录解析。兼容新五列（需求、标题、规格、优先级、说明）与旧四列（需求、标题、优先级、说明）表头。未登记在 ROADMAP 中的目录不显示。分组顺序固定为进行中、规划中、已完成；组内保持 ROADMAP 中的行顺序。编号重复的行按原样逐行显示，不合并。分区标题缺失、标题下没有表格或表头无法识别时，该分区视为空 | FR-02 |
 | BR-03 | Feature 文件清单为该 Feature 目录下（含子目录）的所有文件，包括 Markdown、PDF、图片等素材，按相对路径字典序排列，`BRIEF.md` 置顶；隐藏文件（以 `.` 开头）不列出。预览方式由文档预览按扩展名决定，无专用渲染器的类型以纯文本显示 | FR-03、FR-04、FR-05 |
 | BR-04 | 只读：插件不创建、修改、删除、移动任何文件，不更改 ROADMAP 或 BRIEF 状态 | 全部 |
-| BR-05 | 无法解析的 ROADMAP 行跳过，不影响其他行显示：缺编号、缺标题，或标题列没有相对路径链接（纯文本、URL、绝对路径、锚点）。解析到工作目录之外的目录不读取，该行显示，展开时按目录缺失处理 | FR-02 |
-| BR-06 | 过滤不区分大小写，按子串匹配。编号或标题匹配时显示该 Feature（展开后列出全部文件）；仅文件相对路径匹配时显示该 Feature 并自动展开，只列出匹配的文件。过滤会读取尚未展开的 Feature 的文件清单。分组标题数量改为匹配数，无匹配的分组隐藏。不搜索文件正文 | FR-08 |
+| BR-05 | 无法解析的 ROADMAP 行跳过，不影响其他行显示：缺编号、缺标题，或标题列没有相对路径链接（纯文本、URL、绝对路径、锚点）。Feature 目录必须位于 `mai-specs/` 之下：解析到 `mai-specs/` 之外的目录（包括工作目录之外）不读取，该行显示，展开时按目录缺失处理 | FR-02 |
+| BR-06 | 过滤遵循 DSH Client 搜索规则：不区分大小写与全半角；编号与标题按子串或词首模糊匹配（如 `sdw` 匹配 “SDD Workbench”），文件相对路径只按连续子串匹配；关键词按空格拆分，每个词都须命中同一 Feature 的编号或标题，或同一文件的路径与所属 Feature 的编号、标题。编号或标题命中时显示该 Feature（展开后列出全部文件）；仅文件命中时显示该 Feature 并自动展开，只列出匹配的文件。分组顺序不变，组内按匹配度排序，匹配度相同时保持 ROADMAP 顺序。过滤会读取尚未展开的 Feature 的文件清单。分组标题数量改为匹配数，无匹配的分组隐藏。不搜索文件正文 | FR-08 |
 
 | 非功能 ID | 性能、可靠性、安全或可访问性要求 | 适用条件与验证口径 |
 |---|---|---|
-| NFR-01 | 界面文案通过 DSH 本地化字典提供中文与英文，英文用句首大写 | `verify-client-ui-i18n` 门禁通过 |
+| NFR-01 | 界面文案通过 DSH 本地化字典提供中文与英文，英文用句首大写；按仓库要求同时提供其余 6 种发布语言（ja、es、fr、de、ru、pt），由 AI 翻译，不在本需求验收范围 | `verify-client-ui-i18n` 门禁通过 |
 | NFR-02 | 遵守工作区访问限制：所有读取经 Host 现有工作区文件接口，路径限制在会话工作目录内 | 单元测试覆盖越界路径被拒绝 |
 | NFR-03 | 插件以独立包提供，不修改 agent-loop 等核心包行为 | 代码评审核对改动范围 |
 
@@ -145,17 +145,17 @@ flowchart LR
 | COPY-01 | 入口卡片标题、tab 标题、页头 | SDD 工作台 | SDD workbench | — |
 | COPY-02 | 入口卡片描述 | 浏览 mai-specs 中的需求与规格 | Browse features and specs in mai-specs | — |
 | COPY-03 | 刷新按钮可访问名称/提示 | 刷新 | Refresh | — |
-| COPY-04 | 分组标题 | {分区名} ({数量}) | {section} ({count}) | 分区名取 ROADMAP 原文；英文界面同样显示原文分区名；数量为整数，0 也显示 |
+| COPY-04 | 分组标题 | {section} ({count}) | {section} ({count}) | {section} 为分区名，取 ROADMAP 原文；英文界面同样显示原文分区名；数量为整数，0 也显示 |
 | COPY-05 | 无工作目录 | 当前会话没有工作目录。 | This session has no working directory. | — |
 | COPY-06 | 未初始化 | 未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra。 | mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first. | — |
 | COPY-07 | 无 Feature | ROADMAP 中还没有需求。 | No features in ROADMAP yet. | — |
-| COPY-08 | 读取失败 | 无法读取 ROADMAP：{原因} | Couldn't read ROADMAP: {reason} | {原因} 为 Host 返回的错误信息 |
-| COPY-09 | Feature 目录缺失 | 未找到需求目录 {路径} | Feature folder {path} not found | {路径} 为 ROADMAP 中该行链接的原文 |
+| COPY-08 | 读取失败 | 无法读取 ROADMAP：{reason} | Couldn't read ROADMAP: {reason} | {reason} 为 Host 返回的错误信息 |
+| COPY-09 | Feature 目录缺失 | 未找到需求目录 {path} | Feature folder {path} not found | {path} 为 ROADMAP 中该行链接的原文 |
 | COPY-10 | 目录为空 | 没有文件 | No files | — |
 | COPY-11 | 搜索框占位文字与可访问名称 | 按编号、标题或文件名过滤 | Filter by number, title, or file name | — |
 | COPY-12 | 无匹配 | 没有匹配的需求或文件 | No matching features or files | — |
-| COPY-13 | 目录读取失败 | 无法读取需求目录：{原因} | Couldn't read feature folder: {reason} | {原因} 为 Host 返回的错误信息 |
-| COPY-14 | 刷新失败 | 刷新失败：{原因}。显示的是上次的结果。 | Refresh failed: {reason}. Showing the previous results. | {原因} 为 Host 返回的错误信息 |
+| COPY-13 | 目录读取失败 | 无法读取需求目录：{reason} | Couldn't read feature folder: {reason} | {reason} 为 Host 返回的错误信息 |
+| COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果。 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息 |
 
 ## 9. 验收标准（Acceptance Criteria）
 
@@ -217,7 +217,7 @@ flowchart LR
 
 **关联**：BR-01、BR-04、NFR-02
 
-- **Given**：插件正常使用；ROADMAP 中某行链接指向 `../../outside/BRIEF.md`
+- **Given**：插件正常使用；ROADMAP 中一行链接指向 `../../outside/BRIEF.md`（工作目录之外），另一行指向 `../src/BRIEF.md`（工作目录之内、`mai-specs/` 之外）
 - **When**：执行 AC-01、AC-02、AC-03、AC-04、AC-06、AC-09 的插件操作（AC-05 中验收者手工改动的文件不计入）
 - **Then**：插件自身不创建、修改、删除任何文件；越界行展开时不发出读取请求，显示 COPY-09
 - **验证方式**：单元测试确认插件只调用 Host 的读取类接口（列目录、读文件），越界路径不发出请求；代码评审核对无写入调用；人工验证在提交干净的工作区中进行，前后 `git status --ignored` 一致
@@ -249,9 +249,11 @@ flowchart LR
 | 列表显示编号、标题、优先级并按 ROADMAP 分区分组，不读 BRIEF Phase | 用户决策 2026-11-18 | FR-02、BR-02 | 否 | austin / 已确认 |
 | 文件清单包含 PDF、图片等全部文件；搜索为列表过滤，不做全文搜索；不设成功指标 | 用户评审 2026-11-19 | BR-03、FR-08、BR-06、第 1 节 | 否 | austin / 已确认 |
 | 刷新失败保留旧列表并提示（COPY-14）；删除刷新快捷键；新增 COPY-13、COPY-14 | PRD 评审 2026-11-19（[评审记录](../review/prd_review.md)） | FR-06、UI-01、AC-05、AC-06 | 否 | austin / 已确认 |
-| 符号链接指向工作目录之外时是否被 Host 拒绝 | PRD 评审 2026-11-19 | BR-01、NFR-02 | 否 | 技术方案阶段核验 |
-| 插件以独立包挂载在哪个 bundle/profile，以及 README 启动命令形式 | 本 PRD 起草 | FR-07 | 否 | 技术方案阶段决定 |
-| 文档预览能否通过 Host 读取任意工作区内 `.md`（假设可以，与“文件”页一致） | 代码调研（README） | FR-05 | 否 | 技术方案阶段核验 |
+| 符号链接指向工作目录之外时是否被 Host 拒绝 | PRD 评审 2026-11-19 | BR-01、NFR-02 | 否 | 已核验：Host 拒绝（见[技术方案](../design/TECH_DESIGN.md)） |
+| Feature 目录限定在 `mai-specs/` 之下 | 用户决策 2026-11-20（技术方案评审前） | BR-05、AC-07 | 否 | austin / 已确认 |
+| 过滤遵循 DSH Client 搜索规则（模糊匹配、多词、按匹配度排序） | 方案评审 F2，用户决策 2026-11-20（[评审记录](../review/design_review.md)） | BR-06 | 否 | austin / 已确认 |
+| 插件以独立包挂载在哪个 bundle/profile，以及 README 启动命令形式 | 本 PRD 起草 | FR-07 | 否 | 已在[技术方案](../design/TECH_DESIGN.md)决定，加载方式待 T1 验证 |
+| 文档预览能否通过 Host 读取任意工作区内 `.md`（假设可以，与“文件”页一致） | 代码调研（README） | FR-05 | 否 | 已核验：可以（见[技术方案](../design/TECH_DESIGN.md)） |
 
 ## 变更记录
 
@@ -260,3 +262,5 @@ flowchart LR
 | 2026-11-18 | 初稿：依据 BRIEF、素材索引与用户三项决策 | 全部 |
 | 2026-11-19 | 用户评审：文件清单包含 PDF、图片等全部文件；新增列表过滤搜索（不含全文搜索）；删除成功指标 | BR-03、FR-03～FR-06、FR-08、BR-06、AC-03、AC-09、COPY-10～12、第 1、7 节 |
 | 2026-11-19 | 处理独立 PRD 评审（[评审记录](../review/prd_review.md)）：修正 AC-05/AC-07 矛盾与只读验证方式；明确 Feature 目录解析、无效行、空分组、刷新失败、目录读取失败、重复打开；删除刷新快捷键；AC-01/02/04～08 改为可判定 | FR-06、UI-01、BR-02、BR-05、COPY-09/13/14、AC-01～AC-08 |
+| 2026-11-20 | 技术方案评审前用户决策：Feature 目录限定在 `mai-specs/` 之下；同步技术方案核验结论 | BR-05、UI-01 状态表、AC-07、第 9 节 |
+| 2026-11-20 | 处理技术方案评审（[评审记录](../review/design_review.md)）：过滤改用 DSH Client 搜索规则（F2）；补充其余 6 种发布语言说明（F3）；文案占位符改用英文名，界面显示不变（F7） | BR-06、NFR-01、COPY-04/08/09/13/14 |

@@ -9,7 +9,7 @@
 - 用户确认本次只做只读浏览：Feature 列表导航与规格文档查看
 - 不做：流程阶段启动、专门的验收结果展示（统计/状态标记；验收文档本身可作为普通规格文档查看）、文档编辑
 - 数据来源为当前项目 mai-specs 目录（ROADMAP.md 与 NNN-slug 子目录）
-- 基线环境已验证：pnpm run build:artifacts 通过，pnpm run dev:web 可启动 DSH Web
+- 基线环境（2026-11-19 用户截图确认）：pnpm run build:artifacts 通过；DSH Web 在 127.0.0.1:3080 可打开，账号已登录；模型请求因账号额度用尽失败（ACCOUNT_QUOTA），对话功能不可用。本插件不依赖模型请求
 
 ## 开放问题
 
