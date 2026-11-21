@@ -306,6 +306,7 @@
   accTitle: 模块与函数签名
   class roadmap_ts {
     +parseRoadmap(markdown) Roadmap
+    +compareIds(a, b) number
     +resolveFeatureDir(target) FeatureDir
   }
   class feature_files_ts {
@@ -348,6 +349,7 @@
 + ├── src/client/index.ts             注册 tab 类型、正文、字典，注入读取回调
 + ├── src/client/roadmap.ts           ROADMAP 解析与越界判断
 + ├── src/client/feature-files.ts     递归列文件与排序
++ ├── src/client/code-point.ts        与界面语言无关的码点序比较（两处排序共用）
 + ├── src/client/filter.ts            列表过滤（TextSearchIndex）
 + ├── src/client/WorkbenchBody.tsx    页面与状态
 + ├── src/client/locales.ts           8 种发布语言字典
@@ -360,7 +362,7 @@
 </section>
 <section id="code">
 <h2><span class="material-symbols-outlined" aria-hidden="true">code</span>核心代码</h2>
-<p class="code-label">拟议代码 · roadmap.ts · parseRoadmap：按表头名定位列，兼容四列与五列；无效行跳过，缺失分区视为空；行键不依赖行序号</p>
+<p class="code-label">拟议代码 · roadmap.ts · parseRoadmap / compareIds：按表头名定位列，兼容四列与五列；无效行跳过，缺失分区视为空；组内按编号升序，最新 Feature 在最上面；行键不依赖行序号</p>
 <pre tabindex="0"><code class="language-ts">/** ROADMAP 的三个二级标题，按显示顺序排列。 */
 export const SECTIONS = [
   { key: &#x27;in-progress&#x27;, heading: &#x27;进行中&#x27; },
@@ -405,8 +407,17 @@ export function parseRoadmap(markdown: string): Roadmap {
       seen.set(row.link, n + 1)
       result[section].push({ ...row, section, key: `${section}:${row.link}:${n}` })
     }
+    result[section].sort((x, y) =&gt; compareIds(x.id, y.id))   // 稳定排序：同编号保持 ROADMAP 行序
   }
   return result
+}
+
+/** 纯数字编号按数值升序（倒序分配 → 最新在上），先于非数字编号；非数字编号按码点序（code-point.ts）。 */
+export function compareIds(a: string, b: string): number {
+  const numericA = /^\d+$/.test(a), numericB = /^\d+$/.test(b)
+  if (numericA &amp;&amp; numericB) return Number(a) - Number(b)
+  if (numericA !== numericB) return numericA ? -1 : 1
+  return compareCodePoints(a, b)
 }
 
 function parseRow(cells: readonly string[], col: Columns): Omit&lt;RoadmapFeature, &#x27;key&#x27; | &#x27;section&#x27;&gt; | undefined {
@@ -514,7 +525,7 @@ export function filterFeatures(
   if (query.trim() === &#x27;&#x27;) return &#x27;all&#x27;                          // 空关键词：完整列表与原展开状态
   const whole = new Set&lt;string&gt;()                                // Feature 项命中的行键
   const hits = new Map&lt;string, Set&lt;string&gt;&gt;()                    // 行键 → 命中的文件
-  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持 ROADMAP 顺序）
+  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持构建顺序，即编号顺序）
   for (const { feature, path } of index.search(query)) {
     if (!whole.has(feature.key) &amp;&amp; !hits.has(feature.key)) order.push(feature)
     if (path === undefined) whole.add(feature.key)

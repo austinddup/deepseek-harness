@@ -53,8 +53,17 @@ export function parseRoadmap(markdown: string): Roadmap {
       seen.set(row.link, n + 1)
       result[section].push({ ...row, section, key: `${section}:${row.link}:${n}` })
     }
+    result[section].sort((x, y) => compareIds(x.id, y.id))   // 稳定排序：同编号保持 ROADMAP 行序（BR-02）
   }
   return result
+}
+
+/** 纯数字编号按数值升序（倒序分配 → 最新在上），先于非数字编号；非数字编号按码点序（code-point.ts）。 */
+export function compareIds(a: string, b: string): number {
+  const numericA = /^\d+$/.test(a), numericB = /^\d+$/.test(b)
+  if (numericA && numericB) return Number(a) - Number(b)
+  if (numericA !== numericB) return numericA ? -1 : 1
+  return compareCodePoints(a, b)
 }
 
 function parseRow(cells: readonly string[], col: Columns): Omit<RoadmapFeature, 'key' | 'section'> | undefined {
@@ -72,7 +81,7 @@ function parseRow(cells: readonly string[], col: Columns): Omit<RoadmapFeature, 
 
 - 表格单元格按未转义的 `|` 切分；标题中含转义 `\|` 时需保留。my-ai-infra 生成的 ROADMAP 不含此情况，单元测试覆盖一例即可。
 - 分区标题按 `## ` 后的文字**精确匹配**（去首尾空格）。写法不同（如“进行中（2）”）视为缺失分区。这是 PRD“无法识别的结构视为空分区”的直接实现。
-- 行键用链接原文而不是行序号（评审 F1）：AC-05 在 999 之前插入新行时，999 的键不变，展开状态保留。同一行把链接改成别的写法会被视为新行，展开状态丢失，这是可接受的。
+- 行键用链接原文而不是行序号（评审 F1）：AC-05 新增一行且其编号排在 999 之前时，999 的键不变，展开状态保留。同一行把链接改成别的写法会被视为新行，展开状态丢失，这是可接受的。
 
 ## 2. Feature 目录解析与越界判断
 
@@ -209,7 +218,7 @@ export function filterFeatures(
   if (query.trim() === '') return 'all'                          // 空关键词：完整列表与原展开状态
   const whole = new Set<string>()                                // Feature 项命中的行键
   const hits = new Map<string, Set<string>>()                    // 行键 → 命中的文件
-  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持 ROADMAP 顺序）
+  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持构建顺序，即编号顺序）
   for (const { feature, path } of index.search(query)) {
     if (!whole.has(feature.key) && !hits.has(feature.key)) order.push(feature)
     if (path === undefined) whole.add(feature.key)

@@ -1,5 +1,6 @@
 /** List every file below a Feature directory, in the order the workbench shows them. */
 import type { WorkspaceDirectoryEntry } from '@deepseek-ai/dsh-api-workspace-files/types'
+import { compareCodePoints } from './code-point.ts'
 
 /**
  * The deepest directory level listed; the Feature directory is level 0. A cycle
@@ -70,15 +71,4 @@ export async function listFeatureFiles(list: ListDirectory, dir: string, signal:
  */
 export function sortFiles(files: readonly string[]): string[] {
   return [...files].sort((a, b) => a === 'BRIEF.md' ? -1 : b === 'BRIEF.md' ? 1 : compareCodePoints(a, b))
-}
-
-/** Code-point order, which differs from `<` when an astral character meets one in U+E000–U+FFFF. */
-function compareCodePoints(a: string, b: string): number {
-  const shorter = Math.min(a.length, b.length)
-  for (let i = 0; i < shorter; i++) {
-    // At the first differing code unit both strings agree on every earlier unit,
-    // so `codePointAt` reads a whole character, or two low surrogates after the same high one.
-    if (a.charCodeAt(i) !== b.charCodeAt(i)) return Number(a.codePointAt(i)) - Number(b.codePointAt(i))
-  }
-  return a.length - b.length
 }

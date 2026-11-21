@@ -78,6 +78,8 @@ flowchart LR
 
 **评审后用户决策（2026-11-20）**：过滤采用仓库 Client 搜索规则（K7，已同步 PRD BR-06）。
 
+**实施中用户决策（2026-11-21）**：Feature 列表组内按编号升序排列，最新 Feature 在最上面（已同步 PRD BR-02、BR-06、AC-02、AC-05）。
+
 **减法检查**：已删除的设计——单独的 store/face 层（K3）、Host 侧服务、插件 `Config` 与配置目录（K4）、自定义 Markdown 渲染（复用预览）、文件变化监听（PRD 不做自动刷新）、自写匹配算法（K7）。
 
 ## 2. 详细设计方案
@@ -170,9 +172,9 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 
 #### 2.3.2 数据读取（FR-02、FR-03、BR-02、BR-03、BR-05）
 
-- `roadmap.ts`：`parseRoadmap(markdown)` 纯函数。按 `## 规划中 / 进行中 / 已完成` 定位分区，读取分区内第一张表；按表头名称定位“需求 / 标题 / 优先级”列，兼容四列与五列。行键规则见 2.1.1。代码见[附录 §1](CODE_DESIGN.md#1-roadmap-解析roadmapts)。
+- `roadmap.ts`：`parseRoadmap(markdown)` 纯函数。按 `## 规划中 / 进行中 / 已完成` 定位分区，读取分区内第一张表；按表头名称定位“需求 / 标题 / 优先级”列，兼容四列与五列。每个分区按 `compareIds` 稳定排序：纯数字编号按数值升序（my-ai-infra 倒序分配编号，最新 Feature 在最上面），非数字编号在后按码点序，同编号保持 ROADMAP 行序。行键规则见 2.1.1。代码见[附录 §1](CODE_DESIGN.md#1-roadmap-解析roadmapts)。
 - `resolveFeatureDir(link)`：拒绝 URL、绝对路径、锚点；剥离尖括号、截掉 `?` 与 `#` 后做百分号解码（解码失败按无效行），再以 `mai-specs/` 为基准做 POSIX 归一化，取目标文件的父目录；父目录不在 `mai-specs/` 之下（含以 `..` 开头、为 `mai-specs` 本身）即为 `outside`。前缀判断必须在归一化之后。见[附录 §2](CODE_DESIGN.md#2-feature-目录解析与越界判断)。
-- `feature-files.ts`：`listFeatureFiles()` 广度优先逐层 `list`，跳过以 `.` 开头的条目，`type === 'directory'` 且深度未超 `MAX_DEPTH` 时继续；排序 `BRIEF.md` 置顶，其余按相对路径码点序。见[附录 §3](CODE_DESIGN.md#3-递归列文件feature-filests)。
+- `feature-files.ts`：`listFeatureFiles()` 广度优先逐层 `list`，跳过以 `.` 开头的条目，`type === 'directory'` 且深度未超 `MAX_DEPTH` 时继续；排序 `BRIEF.md` 置顶，其余按相对路径码点序（码点比较在 `code-point.ts`，与 `roadmap.ts` 共用）。见[附录 §3](CODE_DESIGN.md#3-递归列文件feature-filests)。
 
 #### 2.3.3 页面（UI-01、FR-04～FR-08）
 
@@ -181,7 +183,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 - 打开文件：`tab.actions.openResource(fileAddressFor(sessionId, cwd, path), panel.isFloating ? undefined : { paneId: panel.id })`，与 `FilesBody.tsx:47` 同法；已打开的资源 tab 由右侧栏聚焦（AC-04 “不重复打开”由框架保证）。
 - 页面类 tab 在同一分栏内去重（右侧栏 README“页 tab 始终只在目标分栏内去重”），满足 UI-01“已打开时切换到已有 tab”。
 - 树形可访问性：`role="tree"` / `treeitem` / `aria-expanded`，上下键移动焦点；组件优先复用 `ui-primitives`，具体组件在 T5 按 `dsh-client-ui-ux` 选定。
-- 过滤（K7）：`filter.ts` 的 `filterFeatures()` 用 `TextSearchIndex`，索引在 `useMemo` 中随 ROADMAP 与缓存变化重建。分组顺序固定，组内按匹配度排序，匹配度相同时保持 ROADMAP 顺序（PRD BR-06）。见[附录 §4](CODE_DESIGN.md#4-过滤filterts)。
+- 过滤（K7）：`filter.ts` 的 `filterFeatures()` 用 `TextSearchIndex`，索引在 `useMemo` 中随 ROADMAP 与缓存变化重建。分组顺序固定，组内按匹配度排序，匹配度相同时按编号顺序（PRD BR-06）：`TextSearchIndex` 同分保持构建顺序，索引按已排序的列表构建。见[附录 §4](CODE_DESIGN.md#4-过滤filterts)。
 
 #### 2.3.4 文案（NFR-01、AC-08）
 
@@ -219,7 +221,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | 任务 | 关联模块/决策 | 变更文件（新增/修改/删除） | 前置依赖 | 交付物与验收条件 |
 |---|---|---|---|---|
 | T1 加载方式验证 | K1、K2 | 新增包骨架（package.json、空 `apply`、注册一个只显示标题的 tab、`locale/*.json` 8 种语言）、`sdd-workbench.patch.yml`；修改 `experimental-package-policy.ts`、`tsconfig.client.json`、`packages/experimental/README*.md` | 无 | `pnpm install && pnpm run build:artifacts` 后 `pnpm dsh web --patch …` 启动，引导页出现卡片；`--dump-config` 显示该行。失败则停止并汇报 |
-| T2 ROADMAP 解析 | 2.3.2、附录 §1 §2 | `src/client/roadmap.ts`、`tests/roadmap.client.spec.ts` | T1 | 单元测试覆盖 AC-02 构造数据、行键（在 999 前插入一行键不漂移）、AC-07 越界判断（含归一化绕过与百分号编码） |
+| T2 ROADMAP 解析 | 2.3.2、附录 §1 §2 | `src/client/roadmap.ts`、`src/client/code-point.ts`、`tests/roadmap.client.spec.ts` | T1 | 单元测试覆盖 AC-02 构造数据、编号排序（数值序、非数字编号在后、同编号保持行序）、行键（在 999 前插入一行键不漂移）、AC-07 越界判断（含归一化绕过与百分号编码） |
 | T3 递归列文件 | 2.3.2、附录 §3 | `src/client/feature-files.ts`、测试 | T1 | 单元测试覆盖排序、隐藏文件、错误归类、深度上限（第 8 层列出、第 9 层不列） |
 | T4 过滤 | K7、附录 §4 | `src/client/filter.ts`、测试 | T2、T3 | 单元测试覆盖 AC-09（a）～（d）、多词查询（如 `999 prd`）、组内排序 |
 | T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；AC-07 越界行展开时注入的列目录回调不被调用，且组件只使用读取类回调；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |

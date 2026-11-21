@@ -2,6 +2,7 @@
  * Parse `mai-specs/ROADMAP.md` into the workbench's grouped Feature list, and
  * decide which Feature directories the workbench may read.
  */
+import { compareCodePoints } from './code-point.ts'
 
 /** The three level-2 headings the workbench reads, in display order. */
 export const SECTIONS = [
@@ -32,7 +33,7 @@ export interface RoadmapFeature {
   readonly dir: FeatureDir
 }
 
-/** Rows grouped by section, each group in ROADMAP order. */
+/** Rows grouped by section, each group in {@link compareIds} order. */
 export type Roadmap = Readonly<Record<SectionKey, readonly RoadmapFeature[]>>
 
 interface Columns {
@@ -42,7 +43,7 @@ interface Columns {
 }
 
 /**
- * Group the usable rows of each section. A missing heading, a heading with no
+ * Group the usable rows of each section, ordered by {@link compareIds}. A missing heading, a heading with no
  * table, or a table without 需求 and 标题 columns yields an empty section.
  * Rows without an id, a titled link, or a relative link target are skipped.
  * @param markdown - the ROADMAP text.
@@ -64,8 +65,28 @@ export function parseRoadmap(markdown: string): Roadmap {
       seen.set(row.link, n + 1)
       result[section].push({ ...row, section, key: `${section}:${row.link}:${n}` })
     }
+    // Stable: rows with equal ids keep their ROADMAP order.
+    result[section].sort((x, y) => compareIds(x.id, y.id))
   }
   return result
+}
+
+const NUMERIC_ID = /^\d+$/
+
+/**
+ * Order Feature ids so the newest Feature comes first: my-ai-infra assigns
+ * numbers downward, so ascending numeric order puts it on top. Numeric ids
+ * compare by value and precede every other id, which compare by code point.
+ * @param a - the first id.
+ * @param b - the second id.
+ * @returns a sort comparator result; zero for ids of equal value, such as `7` and `007`.
+ */
+export function compareIds(a: string, b: string): number {
+  const numericA = NUMERIC_ID.test(a)
+  const numericB = NUMERIC_ID.test(b)
+  if (numericA && numericB) return Number(a) - Number(b)
+  if (numericA !== numericB) return numericA ? -1 : 1
+  return compareCodePoints(a, b)
 }
 
 /** Lines after the first `## heading` up to the next level-1 or level-2 heading; empty when absent. */

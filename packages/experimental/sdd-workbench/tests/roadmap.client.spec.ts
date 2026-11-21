@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRoadmap, resolveFeatureDir } from '../src/client/roadmap.ts'
+import { compareIds, parseRoadmap, resolveFeatureDir } from '../src/client/roadmap.ts'
 
 const FIVE = '| 需求 | 标题 | 规格 | 优先级 | 说明 |\n|---|---|---|---|---|'
 const FOUR = '| 需求 | 标题 | 优先级 | 说明 |\n| :-- | --- | :-: | --: |'
@@ -30,12 +30,12 @@ describe('parseRoadmap', () => {
     expect(roadmap['in-progress']).toEqual([])
     expect(roadmap.planned).toEqual([
       {
-        key: 'planned:999-sdd-workbench/BRIEF.md:0', section: 'planned', id: '999', title: 'SDD 工作台',
-        priority: 'P1', link: '999-sdd-workbench/BRIEF.md', dir: { kind: 'inside', path: 'mai-specs/999-sdd-workbench' },
-      },
-      {
         key: 'planned:993-x/BRIEF.md:0', section: 'planned', id: '993', title: '无优先级',
         priority: undefined, link: '993-x/BRIEF.md', dir: { kind: 'inside', path: 'mai-specs/993-x' },
+      },
+      {
+        key: 'planned:999-sdd-workbench/BRIEF.md:0', section: 'planned', id: '999', title: 'SDD 工作台',
+        priority: 'P1', link: '999-sdd-workbench/BRIEF.md', dir: { kind: 'inside', path: 'mai-specs/999-sdd-workbench' },
       },
     ])
     expect(roadmap.done.map(f => [f.id, f.title, f.priority, f.dir])).toEqual([
@@ -105,6 +105,32 @@ describe('parseRoadmap', () => {
   it('reads a table without a priority column', () => {
     const roadmap = parseRoadmap('## 规划中\n| 标题 | 需求 |\n|---|---|\n| [a](1-a/BRIEF.md) |\n| [b](2-b/BRIEF.md) | 2 |')
     expect(roadmap.planned.map(f => [f.id, f.priority])).toEqual([['2', undefined]])
+  })
+})
+
+describe('Feature order', () => {
+  it('orders each section by id so the newest Feature is on top, keeping ROADMAP order for equal ids', () => {
+    const row = (id: string, link: string) => `| ${id} | [${link}](${link}/BRIEF.md) | s | P1 | |`
+    const roadmap = parseRoadmap(['## 进行中', FIVE,
+      row('999', 'a'), row('TMP-B', 'b'), row('1000', 'c'), row('998', 'd'), row('TMP-A', 'e'), row('7', 'f'), row('007', 'g'), row('7', 'h'),
+    ].join('\n'))
+    expect(roadmap['in-progress'].map(f => `${f.id}:${f.title}`)).toEqual(
+      ['7:f', '007:g', '7:h', '998:d', '999:a', '1000:c', 'TMP-A:e', 'TMP-B:b'],
+    )
+  })
+
+  it('places a row inserted into the ROADMAP by its id, not by its line', () => {
+    const roadmap = parseRoadmap(`## 规划中\n${FIVE}\n| 999 | [A](999-a/BRIEF.md) | s | P1 | |\n| 998 | [B](998-b/BRIEF.md) | s | P1 | |`)
+    expect(roadmap.planned.map(f => f.id)).toEqual(['998', '999'])
+  })
+
+  it('compares ids numerically first, then by code point', () => {
+    expect(compareIds('9', '10')).toBeLessThan(0)
+    expect(compareIds('007', '7')).toBe(0)
+    expect(compareIds('999', 'A-1')).toBeLessThan(0)
+    expect(compareIds('A-1', '999')).toBeGreaterThan(0)
+    expect(compareIds('12a', '12')).toBeGreaterThan(0)
+    expect(compareIds('B', 'a')).toBeLessThan(0)
   })
 })
 
