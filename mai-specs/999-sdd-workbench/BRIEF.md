@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| Phase | draft |
+| Phase | dev |
 | Profile | standard |
 | 优先级 | P1 |
 | 负责人 | austin |

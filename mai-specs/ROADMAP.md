@@ -4,12 +4,12 @@
 
 | 需求 | 标题 | 规格 | 优先级 | 说明 |
 |---|---|---|---|---|
-| 999 | [SDD 工作台：Feature 导航与规格查看](999-sdd-workbench/BRIEF.md) | standard | P1 | 在 DSH Web 中浏览当前项目 mai-specs 的 Feature 列表，并只读查看各 Feature 的规格文档 |
 
 ## 进行中
 
 | 需求 | 标题 | 规格 | 优先级 | 说明 |
 |---|---|---|---|---|
+| 999 | [SDD 工作台：Feature 导航与规格查看](999-sdd-workbench/BRIEF.md) | standard | P1 | 在 DSH Web 中浏览当前项目 mai-specs 的 Feature 列表，并只读查看各 Feature 的规格文档 |
 
 ## 已完成
 
