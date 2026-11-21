@@ -176,7 +176,7 @@ export function sortFiles(files: readonly string[]): string[] {
 
 - 超过 `MAX_DEPTH` 的目录**静默**不再展开，不提示（用户已确认 2026-11-20）。
 - 子目录列举失败时，整个 Feature 记为 `failed`，而不是部分展示（用户已确认 2026-11-20）。取舍理由：部分结果会让用户误以为文件不存在。
-- `list` 返回 `truncated: true`（单目录超过 2000 项）时不提示。规格目录不会达到此规模。
+- ~~`list` 返回 `truncated: true`（单目录超过 2000 项）时不提示。规格目录不会达到此规模。~~ 已由 §6 取代（2026-11-21）：`truncated` 与累计条目上限都标记清单不完整并提示 COPY-15。
 - 被取消的请求同样返回 `ok: false`；调用方按代次丢弃，不写入缓存（见 §5）。
 
 ## 4. 过滤（`filter.ts`）
@@ -314,3 +314,122 @@ const isOpen = (f: FilteredFeature) => query === ''
 - `useReducer` 的状态是否需要跨会话保留？`keepMounted: true` 只在同一会话内保留；切换会话后回来同样保留（右侧栏按会话持有正文）。不额外持久化。
 - `cwd` 变化（会话工作目录被修改）时递增代次、`abort`，清空展开集合与缓存后重新 `refresh`。
 - 文件命中的 Feature 在过滤视图中默认展开，编号或标题命中的沿用过滤前的展开状态。这与 BR-06“仅文件匹配时自动展开”一致。
+
+## 6. 读取数量上限
+
+对应 BR-07、NFR-04、AC-10、COPY-15/16，决策 K8。以下为设计示意（2026-11-21）。
+
+**实施说明（T6b，2026-11-21）**：实现保持下列语义，有两处结构差异：
+
+- `listFeatureFiles` 遇到第 2001 个条目时直接 `return { kind: 'ok', files, incomplete: true }`，不用 `capped` 标记跳出两层循环；Host 截断仍只置 `truncated` 并继续列。
+- 不完整提示行与文件行同时出现，提示行的 React key 由 `<行键>/note` 改为 `<行键>:note`：文件行的 key 是 `<行键>/<路径>`，名为 `note` 的文件会与旧写法重名；行键以序号结尾，所以新写法也不会与 Feature 行重名。
+
+### 6.1 ROADMAP（`face.ts`）
+
+```ts
+export const MAX_ROADMAP_LINES = 20_000
+export const MAX_ROADMAP_BYTES = 2 * 1024 * 1024
+/** 插件自定义的失败码；不是 Host 错误码，state.ts 据此显示 COPY-16。 */
+export const ROADMAP_TOO_LARGE = 'sdd-workbench/roadmap-too-large'
+
+const tooLarge = { ok: false, code: ROADMAP_TOO_LARGE, message: '' } as const
+const oversized = (bytes: number | undefined) => bytes !== undefined && bytes > MAX_ROADMAP_BYTES
+
+readRoadmap: async (signal) => {
+  // 先查大小：Host 报告了 bytes 且超限时，一行内容都不读。
+  const stat = await remote.workspaceFiles.stat(sessionId, ROADMAP_PATH, signal)
+  if (!stat.ok) return fold(stat)                                   // not-found 等与 read 一致
+  if (oversized(stat.value.bytes)) return tooLarge
+  const pages: string[] = []
+  let total = 0
+  for (let offset = 1; ; ) {
+    const page = await remote.workspaceFiles.read(sessionId, ROADMAP_PATH, { offset }, signal)
+    if (!page.ok) return page.error.code === 'workspace-file/too-large' ? tooLarge : fold(page)   // 单页超过 Host maxBytes
+    if (oversized(page.value.bytes)) return tooLarge                // 文件在两次请求之间变大
+    total += page.value.lines
+    if (total > MAX_ROADMAP_LINES) return tooLarge                  // 已读页随 pages 一起丢弃
+    if (page.value.lines > 0) pages.push(page.value.text)
+    if (page.value.eof || page.value.lines === 0) return { ok: true, text: pages.join('\n') }
+    offset += page.value.lines
+  }
+}
+```
+
+### 6.2 Feature 文件清单（`feature-files.ts`）
+
+```ts
+/** 每个 Feature 累计最多读入的非隐藏条目数（文件与子目录合计）。 */
+export const MAX_ENTRIES = 2000
+
+export type FileListing =
+  | { readonly kind: 'loading' }
+  | { readonly kind: 'ok'; readonly files: readonly string[]; readonly incomplete: boolean }   // incomplete → COPY-15
+  | { readonly kind: 'missing' }
+  | { readonly kind: 'failed'; readonly reason: string }
+
+// ListDirectory 的成功结果增加 truncated（face.ts 原样转交 Host 的值）。
+export type ListResult =
+  | { readonly ok: true; readonly entries: readonly WorkspaceDirectoryEntry[]; readonly truncated: boolean }
+  | { readonly ok: false; readonly code: string; readonly message: string }
+
+export async function listFeatureFiles(list: ListDirectory, dir: string, signal: AbortSignal): Promise<FileListing> {
+  const files: string[] = []
+  let counted = 0
+  let truncated = false                                             // Host 截断了某个目录：只做标记，继续列
+  let capped = false                                                // 达到 MAX_ENTRIES：停止一切列目录
+  let level = ['']
+  for (let depth = 0; level.length > 0 && depth <= MAX_DEPTH && !capped; depth++) {
+    const next: string[] = []
+    for (const rel of level) {
+      const answer = await list(rel === '' ? dir : `${dir}/${rel}`, signal)
+      if (!answer.ok) return /* 与 §3 相同：根目录缺失 → missing，其他 → failed（失败优先于不完整） */
+      if (answer.truncated) truncated = true
+      for (const entry of answer.entries) {
+        if (entry.name.startsWith('.')) continue
+        if (counted === MAX_ENTRIES) { capped = true; break }       // 第 2001 个：停止
+        counted++
+        const path = rel === '' ? entry.name : `${rel}/${entry.name}`
+        if (entry.type === 'directory') next.push(path)
+        else files.push(path)
+      }
+      if (capped) break                                             // 不再列同层其余目录
+    }
+    level = next
+  }
+  return { kind: 'ok', files: sortFiles(files), incomplete: truncated || capped }
+}
+```
+
+- 请求数上限：每次 `list` 对应根目录或一个已计数的子目录，所以每个 Feature 最多 1 + 2000 次。
+- 恰好 2000 个条目：第 2000 个之后没有条目，`capped` 不会置位，`incomplete` 为 `false`。代价是已计数的子目录仍会被列一次以确认其中没有条目。
+- Host 截断时继续列其余目录，只做标记：截断只说明那一个目录不全，其余目录仍可完整列出。
+- 超出 `MAX_DEPTH` 的目录仍静默不展开，不算不完整（沿用 2026-11-20 用户决定）。
+
+### 6.3 状态与渲染（`state.ts`、`WorkbenchBody.tsx`）
+
+```ts
+/** ROADMAP 读取失败的原因；too-large 在渲染时取 COPY-16，随界面语言切换。 */
+export type Reason = { readonly kind: 'host'; readonly message: string } | { readonly kind: 'too-large' }
+
+// Load 中 failed.reason 与 ready.refreshError 由 string 改为 Reason。
+export async function load(previous: Load, read: ReadRoadmap, signal: AbortSignal): Promise<Load> {
+  const answer = await read(signal)
+  if (answer.ok) return { kind: 'ready', roadmap: parseRoadmap(answer.text), refreshing: false, refreshError: undefined }
+  const reason: Reason = answer.code === ROADMAP_TOO_LARGE ? { kind: 'too-large' } : { kind: 'host', message: answer.message }
+  if (previous.kind === 'ready') return { ...previous, refreshing: false, refreshError: reason }
+  return answer.code === 'workspace-file/not-found' ? { kind: 'uninitialized' } : { kind: 'failed', reason }
+}
+
+// WorkbenchBody.tsx
+const reasonText = (t: T, reason: Reason) => reason.kind === 'too-large' ? t('roadmap.tooLarge') : reason.message
+
+// childRows：ok 清单
+//   files 为空且 !incomplete → COPY-10
+//   列出（过滤时为 onlyFiles 或全部）文件行；incomplete → 末尾加 note 行 COPY-15（files 为空时只有这一行）
+```
+
+**审查问题**
+
+- `stat` 预检多一次请求，换来“超限文件一行都不读”。去掉它时，大于 2 MB 的 ROADMAP 读取顺序取决于分页：第一页超过 Host `maxBytes` 会直接被拒（单页内存由 Host 限制），否则要读到某页的 `bytes` 才能判出（评审 G3）。保留 `stat` 让 2 MB 规则在读任何内容前生效。
+- 页面读到的 `bytes` 与 `stat` 不一致（文件在两次请求之间变大）时，以较新的页为准判超限。
+- 过滤只在已读到的文件里匹配（PRD BR-07）。不完整的 Feature 可能漏掉匹配，靠展开后的 COPY-15 提示用户。

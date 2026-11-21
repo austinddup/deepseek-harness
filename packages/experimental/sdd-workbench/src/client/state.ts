@@ -1,22 +1,25 @@
 /** The workbench page's state: what is loaded, what is expanded, and what is filtered. */
 import type { FileListing } from './feature-files.ts'
-import type { ReadRoadmap } from './face.ts'
+import { ROADMAP_TOO_LARGE, type ReadRoadmap } from './face.ts'
 import type { FilteredFeature } from './filter.ts'
 import { parseRoadmap, SECTIONS, type Roadmap, type RoadmapFeature, type SectionKey } from './roadmap.ts'
+
+/** Why a ROADMAP read failed: the Host's message, or the page's own over-limit reason, worded in the current language. */
+export type Reason = { readonly kind: 'host'; readonly message: string } | { readonly kind: 'too-large' }
 
 /** The ROADMAP as the page knows it. */
 export type Load =
   | { readonly kind: 'no-workspace' }
   | { readonly kind: 'loading' }
   | { readonly kind: 'uninitialized' }
-  | { readonly kind: 'failed'; readonly reason: string }
+  | { readonly kind: 'failed'; readonly reason: Reason }
   | {
     readonly kind: 'ready'
     readonly roadmap: Roadmap
     /** A refresh is under way; the list stays shown. */
     readonly refreshing: boolean
     /** The last refresh failed with this message; the list is the one before it. */
-    readonly refreshError: string | undefined
+    readonly refreshError: Reason | undefined
   }
 
 export interface WorkbenchState {
@@ -64,8 +67,9 @@ export function initialState(workspace: boolean): WorkbenchState {
 export async function load(previous: Load, read: ReadRoadmap, signal: AbortSignal): Promise<Load> {
   const answer = await read(signal)
   if (answer.ok) return { kind: 'ready', roadmap: parseRoadmap(answer.text), refreshing: false, refreshError: undefined }
-  if (previous.kind === 'ready') return { ...previous, refreshing: false, refreshError: answer.message }
-  return answer.code === 'workspace-file/not-found' ? { kind: 'uninitialized' } : { kind: 'failed', reason: answer.message }
+  const reason: Reason = answer.code === ROADMAP_TOO_LARGE ? { kind: 'too-large' } : { kind: 'host', message: answer.message }
+  if (previous.kind === 'ready') return { ...previous, refreshing: false, refreshError: reason }
+  return answer.code === 'workspace-file/not-found' ? { kind: 'uninitialized' } : { kind: 'failed', reason }
 }
 
 function toggled<T>(set: ReadonlySet<T>, item: T): ReadonlySet<T> {

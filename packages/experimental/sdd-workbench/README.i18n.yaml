@@ -1,0 +1,49 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/sdd-workbench/README.md
+/:
+  en: f24d787b9eb7d5e4
+  zh: 1a126b439c657be1
+/deepseek-ai-dsh-sdd-workbench:
+  en: 89246b83230ee477
+  zh: 8e22eda593d62b49
+/deepseek-ai-dsh-sdd-workbench/summary:
+  en: 4e3b1d9f5e4987db
+  zh: 6b579bf78293119e
+/deepseek-ai-dsh-sdd-workbench/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-sdd-workbench/use-this-package:
+  en: c80f903c6bf31c27
+  zh: 331a601fb16bb9c2
+/deepseek-ai-dsh-sdd-workbench/use-this-package/when-to-choose-it:
+  en: f7fb90bbe998e619
+  zh: 9563a21836af43a0
+/deepseek-ai-dsh-sdd-workbench/use-this-package/start-dsh-with-the-page:
+  en: 9d62424e8cb768fb
+  zh: f1f01e07b7dc4d0a
+/deepseek-ai-dsh-sdd-workbench/use-this-package/open-the-page-in-the-right-workspace:
+  en: e708bef6bf3dff68
+  zh: 80870503dd504a23
+/deepseek-ai-dsh-sdd-workbench/use-this-package/minimal-configuration:
+  en: 78818bbdf066c01c
+  zh: a09f2e6eee469e72
+/deepseek-ai-dsh-sdd-workbench/understand-the-implementation:
+  en: 0d9641c82c14123b
+  zh: 7ac715456ca4e192
+/deepseek-ai-dsh-sdd-workbench/further-exploration:
+  en: 6530ca03e3c1d02c
+  zh: 7bf35904a9b1fcc5
+/deepseek-ai-dsh-sdd-workbench/model-experience:
+  en: fdba74b9e220f62f
+  zh: 8911035148b812c4
+/deepseek-ai-dsh-sdd-workbench/model-experience/kv-cache-effect:
+  en: 0d40e0e80962737d
+  zh: f5641ffe1afc705c
+/deepseek-ai-dsh-sdd-workbench/known-limitations-and-deferred-work:
+  en: 808e7bc51151c8fc
+  zh: f1b0fc7878044756
+/deepseek-ai-dsh-sdd-workbench/known-limitations-and-deferred-work/dev-note:
+  en: f490719a81474f0b
+  zh: bbfc4ceff92f2663

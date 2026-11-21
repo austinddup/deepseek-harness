@@ -19,7 +19,7 @@ import { buildIndex, filterFeatures, type FilteredFeature, type FilteredRoadmap,
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from './locales.ts'
 import { SECTIONS, type Roadmap, type RoadmapFeature, type SectionKey } from './roadmap.ts'
-import { allFeatures, initialState, isOpen, load, reduce, wantedDirs, type WorkbenchState } from './state.ts'
+import { allFeatures, initialState, isOpen, load, reduce, wantedDirs, type Reason, type WorkbenchState } from './state.ts'
 import css from './WorkbenchBody.module.css'
 
 /** Props the `sidebar.right.pane.tab` seat passes to this body. */
@@ -75,7 +75,8 @@ function rowsOf(state: WorkbenchState, roadmap: Roadmap, filtered: FilteredRoadm
 
 /** An open Feature's file rows, or the one note that stands in for them. */
 function childRows(state: WorkbenchState, feature: RoadmapFeature, filtered: FilteredFeature | undefined, t: Translate): Row[] {
-  const note = (text: string | undefined): Row[] => [{ kind: 'note', key: `${feature.key}/note`, text }]
+  // `:` keeps the note's key apart from file keys (`<feature>/<path>`) and Feature keys, which end in a number.
+  const note = (text: string | undefined): Row[] => [{ kind: 'note', key: `${feature.key}:note`, text }]
   const missing = t('feature.missing', { path: feature.link })
   if (feature.dir.kind === 'outside') return note(missing)
   const dir = feature.dir.path
@@ -84,8 +85,15 @@ function childRows(state: WorkbenchState, feature: RoadmapFeature, filtered: Fil
   if (listing.kind === 'missing') return note(missing)
   if (listing.kind === 'failed') return note(t('feature.failed', { reason: listing.reason }))
   const files = filtered?.onlyFiles ?? listing.files
-  if (files.length === 0) return note(t('feature.empty'))
-  return files.map(path => ({ kind: 'file', key: `${feature.key}/${path}`, dir, path }))
+  if (files.length === 0 && !listing.incomplete) return note(t('feature.empty'))
+  const rows: Row[] = files.map(path => ({ kind: 'file', key: `${feature.key}/${path}`, dir, path }))
+  if (listing.incomplete) rows.push(...note(t('feature.incomplete')))
+  return rows
+}
+
+/** A failed ROADMAP read's reason in the current language. */
+function reasonText(reason: Reason, t: Translate): string {
+  return reason.kind === 'too-large' ? t('roadmap.tooLarge') : reason.message
 }
 
 /**
@@ -185,12 +193,12 @@ function Content({ state, filtered, t, dispatch, onOpen }: ContentProps): ReactN
     case 'no-workspace': return <StatusLine state="no-workspace" text={t('state.noWorkspace')} />
     case 'loading': return <div className={css.loading} aria-busy="true" data-workbench-state="loading"><StateDot state="ongoing" /></div>
     case 'uninitialized': return <StatusLine state="uninitialized" text={t('state.uninitialized')} />
-    case 'failed': return <StatusLine state="failed" text={t('state.roadmapFailed', { reason: load.reason })} />
+    case 'failed': return <StatusLine state="failed" text={t('state.roadmapFailed', { reason: reasonText(load.reason, t) })} />
     case 'ready': break
   }
   const refreshNotice = load.refreshError === undefined
     ? undefined
-    : <p className={css.notice} role="status" data-workbench-notice>{t('refresh.failed', { reason: load.refreshError })}</p>
+    : <p className={css.notice} role="status" data-workbench-notice>{t('refresh.failed', { reason: reasonText(load.refreshError, t) })}</p>
   if (allFeatures(load.roadmap).length === 0) {
     return <>{refreshNotice}<StatusLine state="no-features" text={t('state.noFeatures')} /></>
   }

@@ -1,19 +1,19 @@
 # SDD 工作台：Feature 导航与规格查看 技术方案
 
-> Feature：999 | 有效需求来源：[PRD](../spec/PRD.md)（2026-11-20 版本） | Profile：standard | 模板：`mai-specs/_templates/TECH_DESIGN.tmpl.md` | 代码基线：`feat/sdd-workbench` @ `f524acfb82` | 状态：已评审（有条件通过，F1～F11 已修订，见[评审记录](../review/design_review.md)）
+> Feature：999 | 有效需求来源：[PRD](../spec/PRD.md)（2026-11-21 版本） | Profile：standard | 模板：`mai-specs/_templates/TECH_DESIGN.tmpl.md` | 代码基线：`feat/sdd-workbench` 提交「完成 999-sdd-workbench 的 PRD 与 PRD 评审」（2026-11-19） | 状态：已评审（有条件通过，F1～F11 已修订，见[评审记录](../review/design_review.md)）；2026-11-21 增补读取数量上限（K8、T6b），该增量已评审（有条件通过，G1～G6 已处理，见[评审记录](../review/design_review.md)）
 
 [返回需求简报](../BRIEF.md) · [代码设计附录](CODE_DESIGN.md)
 
 ## 需求依据与验收
 
-需求与验收的唯一维护源是 [PRD](../spec/PRD.md)：FR-01～FR-08、BR-01～BR-06、NFR-01～NFR-03、COPY-01～COPY-14、AC-01～AC-09。本文只引用编号，不复述规则。PRD 评审记录见 [prd_review.md](../review/prd_review.md)，方案评审记录见 [design_review.md](../review/design_review.md)。
+需求与验收的唯一维护源是 [PRD](../spec/PRD.md)：FR-01～FR-08、BR-01～BR-07、NFR-01～NFR-04、COPY-01～COPY-16、AC-01～AC-10。本文只引用编号，不复述规则。PRD 评审记录见 [prd_review.md](../review/prd_review.md)，方案评审记录见 [design_review.md](../review/design_review.md)。
 
 PRD 留给本阶段的待确认事项及结论：
 
 | PRD 待确认事项 | 结论 | 依据 | 详情 |
 |---|---|---|---|
 | 插件挂载位置与 README 启动命令 | 实验性 Client 包 + 包内 `--patch` 覆盖文件；启动命令 `pnpm dsh web --patch <包内 patch 文件>` | 见决策 K2 | 1.3 |
-| 读取工作区文件的接口 | 复用 `remote.workspaceFiles` 的 `read` 与 `list`，不新增 Host 接口 | `packages/api/workspace-files/README.zh.md` | 2.1.3 |
+| 读取工作区文件的接口 | 复用 `remote.workspaceFiles` 的 `stat`、`read` 与 `list`，不新增 Host 接口 | `packages/api/workspace-files/README.zh.md` | 2.1.3 |
 | 文档预览能否打开任意工作区文件 | 能：`fileAddressFor()` 生成 `dsh-resource://file/…` 地址，`tab.actions.openResource()` 由文档预览认领 | `ui-sidebar-files/src/client/FileNavigator.tsx:258`、`FilesBody.tsx:47`、`ui-sidebar-documentpreview/src/client/definition.ts:50-52` | 2.3.3 |
 | 符号链接越界 | Host 已拦截：`list` 跟随符号链接但要求目标在工作区内，`read` 拒绝末端符号链接。中间目录符号链接的残余缺口见风险表 | `api/workspace-files` README“文件读取与目录检查” | 3 |
 | 入口图标 | 使用引导页默认占位图标，不新增图形 | 见决策 K5 | 1.3 |
@@ -72,13 +72,14 @@ flowchart LR
 | K4 递归列目录 | 逐层调用 `list`，深度上限为模块常量 `MAX_DEPTH = 8`（根目录为第 0 层，最多列到第 8 层），防止工作区内符号链接成环时无限递归 | 不设上限：成环时请求不终止。做成插件配置：patch 行配置传不到浏览器端（评审 F4），且无 AC 需要 | 默认值 8 为 AI 选取；超过上限静默不展开，用户已确认（2026-11-20） | 2.3.2 |
 | K5 入口图标 | 不注册图标，使用引导页默认的立方体占位图标。仓库规则要求新图形经设计审批（`AGENTS.md` “Official plugin artwork”）；现有 `GuideArtworkFiles` 是“文件”页图标，复用会混淆 | 新绘图标需审批，作业周期内不可行 | 用户已确认（2026-11-20）；PRD AC-01“带图标”以占位图标满足 | 2.3.1 |
 | K6 ROADMAP 读取 | 按行分页读取 `mai-specs/ROADMAP.md` 直到 `eof`，拼接后整体解析 | — | 无 | 2.3.2 |
+| K8 读取数量上限（BR-07、NFR-04） | ROADMAP：先 `stat`，Host 报告的 `bytes` 超过 2 MB 即判超限，不读内容；否则分页 `read`，累计行数超过 20000，或任一页报告的 `bytes` 超过 2 MB，或 Host 以 `workspace-file/too-large` 拒绝某页（单页超过 Host `maxBytes`，默认 2 MiB），即停止请求并丢弃已读页。每个 Feature：累计非隐藏条目最多 2000 个，遇到第 2001 个即停止列目录，清单标记 `incomplete`；任一目录 `list` 返回 `truncated: true` 同样标记。常量 `MAX_ROADMAP_LINES`、`MAX_ROADMAP_BYTES` 在 `face.ts`，`MAX_ENTRIES` 在 `feature-files.ts`，均为模块常量 | 只按行数：每行很长的文件仍会被整页读进内存。给 `read` 传 `limit` 精确截到 20000 行：`limit` 不能超过 Host 的 `maxLines`，超过即请求被拒，而插件不知道 Host 的配置值，所以不传，最多多读一页（不超过 Host 每页上限）。做成插件配置：同 K4，patch 行配置传不到浏览器端 | 数值与超限处理用户已确认（2026-11-21，PRD BR-07）；`stat` 预检为 AI 设计 | 2.3.2、[附录 §6](CODE_DESIGN.md#6-读取数量上限) |
 | K7 过滤实现 | 用 `TextSearchIndex`：编号、标题放 `fuzzy`，文件相对路径放 `substring`；每个文件作为一个索引项，同时携带所属 Feature 的编号和标题，使“`999 prd`”这类多词查询能命中 | 备选自写子串匹配：违反仓库 Client 搜索规则（评审 F2） | 用户已确认（2026-11-20），已同步 PRD BR-06 | 2.3.3 |
 
 **评审前用户决策（2026-11-20）**：确认 K1、K5；子目录读取失败时整个 Feature 显示 COPY-13；超过深度上限不提示；Feature 目录限定在 `mai-specs/` 之下（已同步 PRD BR-05、AC-07）；文案测试直接读取 PRD 的 COPY 表比对。
 
 **评审后用户决策（2026-11-20）**：过滤采用仓库 Client 搜索规则（K7，已同步 PRD BR-06）。
 
-**实施中用户决策（2026-11-21）**：Feature 列表组内按编号升序排列，最新 Feature 在最上面（已同步 PRD BR-02、BR-06、AC-02、AC-05）。
+**实施中用户决策（2026-11-21）**：Feature 列表组内按编号升序排列，最新 Feature 在最上面（已同步 PRD BR-02、BR-06、AC-02、AC-05）。回查安全设计时发现读取总量没有上限，用户决定补上限并提示（K8，已同步 PRD BR-07、NFR-04、AC-10、COPY-15/16）：ROADMAP 超限时丢弃已读内容、整页失败，插件不修改文件。
 
 **减法检查**：已删除的设计——单独的 store/face 层（K3）、Host 侧服务、插件 `Config` 与配置目录（K4）、自定义 Markdown 渲染（复用预览）、文件变化监听（PRD 不做自动刷新）、自写匹配算法（K7）。
 
@@ -94,7 +95,7 @@ flowchart LR
 |---|---|---|
 | `RoadmapFeature` | 一行 Feature：行键、编号、标题、优先级、链接原文、Feature 目录 | BR-02、BR-05 |
 | `FeatureDir` | `inside`（`mai-specs/` 之下的工作区相对路径）或 `outside` | BR-01、AC-07 |
-| `FileListing` | `loading` / `ok`（相对路径列表）/ `missing` / `failed` | BR-03、COPY-09/10/13 |
+| `FileListing` | `loading` / `ok`（相对路径列表与是否不完整）/ `missing` / `failed` | BR-03、BR-07、COPY-09/10/13/15 |
 | `WorkbenchState` | 页面状态机，见下 | UI-01 状态表 |
 
 **两种键**（评审 F1）：
@@ -135,8 +136,9 @@ stateDiagram-v2
 
 | 调用 | 用法 | 错误处理 |
 |---|---|---|
-| `remote.workspaceFiles.read(sessionId, 'mai-specs/ROADMAP.md', { offset, limit }, signal)` | 分页读，`eof` 为止 | `workspace-file/not-found` → Uninitialized（COPY-06）；其他 → Failed（COPY-08）或 refreshError（COPY-14） |
-| `remote.workspaceFiles.list(sessionId, dir, signal)` | 逐层列目录 | Feature 根目录 `not-found` / `outside-workspace` → `missing`（COPY-09）；其他 → `failed`（COPY-13）；子目录失败 → 整个 Feature 记为 `failed` |
+| `remote.workspaceFiles.stat(sessionId, 'mai-specs/ROADMAP.md', signal)` | 读内容前查大小（K8） | 与 `read` 相同 |
+| `remote.workspaceFiles.read(sessionId, 'mai-specs/ROADMAP.md', { offset }, signal)` | 分页读，`eof` 为止；超过 K8 上限即停止 | `workspace-file/not-found` → Uninitialized（COPY-06）；超限 → 插件自定义 `sdd-workbench/roadmap-too-large`，显示 COPY-08 / COPY-14，{reason} 为 COPY-16；其他 → Failed（COPY-08）或 refreshError（COPY-14） |
+| `remote.workspaceFiles.list(sessionId, dir, signal)` | 逐层列目录；读取返回的 `truncated` | Feature 根目录 `not-found` / `outside-workspace` → `missing`（COPY-09）；其他 → `failed`（COPY-13）；子目录失败 → 整个 Feature 记为 `failed`；`truncated` 或超过 K8 上限 → `ok` 且 `incomplete`（COPY-15） |
 
 Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/typert/protocol/src/types.ts:123-132`）。
 
@@ -144,7 +146,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 
 ### 2.2 配置变更
 
-无。递归深度为模块常量（K4）。
+无。递归深度（K4）与读取数量上限（K8）均为模块常量。
 
 ### 2.3 分模块详细设计
 
@@ -157,7 +159,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | `package.json` | `private: true`；依赖 `dsh-util-text-search`、`dsh-util-workspace-path`；`dsh.client.inject` 列出依赖的 Client 包；结构参照 `packages/experimental/client-ui-stats/package.json` |
 | `src/index.ts` | Host 半，空 `apply()`，无 `Config` |
 | `src/client/index.ts` | 注册 tab 类型、正文（inject 读取回调）、字典 |
-| `src/client/face.ts` | `workbenchFace(remote, sessionId)`：把 `read`（分页读到 `eof`）与 `list` 绑定到会话，失败折叠为值；只暴露这两个读取回调（T5 实施时从 `index.ts` 拆出，便于单测） |
+| `src/client/face.ts` | `workbenchFace(remote, sessionId)`：把 `stat` + `read`（分页读到 `eof`，超过 K8 上限即停）与 `list` 绑定到会话，失败折叠为值；只暴露这两个读取回调（T5 实施时从 `index.ts` 拆出，便于单测） |
 | `src/client/state.ts` | 页面状态的纯 reducer、`load()`、`wantedDirs()`、`isOpen()`（T5 实施时从组件拆出，便于单测） |
 | `src/client/WorkbenchBody.module.css`、`src/css-modules.d.ts` | 页面样式（沿用“文件”页的页头、工具按钮、行、提示样式）与 CSS Module 类型声明（同 `ui-sidebar-files`） |
 | `sdd-workbench.patch.yml` | `- insert: [{ id: sdd-workbench, name: './src/index.ts' }]`，写法沿用 `cua-macos/examples/macos.cordis.yml` 先例，T1 已验证 |
@@ -178,6 +180,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 - `roadmap.ts`：`parseRoadmap(markdown)` 纯函数。按 `## 规划中 / 进行中 / 已完成` 定位分区，读取分区内第一张表；按表头名称定位“需求 / 标题 / 优先级”列，兼容四列与五列。每个分区按 `compareIds` 稳定排序：纯数字编号按数值升序（my-ai-infra 倒序分配编号，最新 Feature 在最上面），非数字编号在后按码点序，同编号保持 ROADMAP 行序。行键规则见 2.1.1。代码见[附录 §1](CODE_DESIGN.md#1-roadmap-解析roadmapts)。
 - `resolveFeatureDir(link)`：拒绝 URL、绝对路径、锚点；剥离尖括号、截掉 `?` 与 `#` 后做百分号解码（解码失败按无效行），再以 `mai-specs/` 为基准做 POSIX 归一化，取目标文件的父目录；父目录不在 `mai-specs/` 之下（含以 `..` 开头、为 `mai-specs` 本身）即为 `outside`。前缀判断必须在归一化之后。见[附录 §2](CODE_DESIGN.md#2-feature-目录解析与越界判断)。
 - `feature-files.ts`：`listFeatureFiles()` 广度优先逐层 `list`，跳过以 `.` 开头的条目，`type === 'directory'` 且深度未超 `MAX_DEPTH` 时继续；排序 `BRIEF.md` 置顶，其余按相对路径码点序（码点比较在 `code-point.ts`，与 `roadmap.ts` 共用）。见[附录 §3](CODE_DESIGN.md#3-递归列文件feature-filests)。
+- 读取数量上限（K8）：`face.ts` 读 ROADMAP 时先 `stat` 再分页，超限返回 `sdd-workbench/roadmap-too-large`；`feature-files.ts` 累计条目数并接收 `truncated`，超限或截断时返回 `{ kind: 'ok', files, incomplete: true }`。每个 Feature 的 `list` 请求数不超过 1 + 2000（每次请求对应根目录或一个已计数的子目录），每次返回的条目数受 Host `maxEntries` 约束。见[附录 §6](CODE_DESIGN.md#6-读取数量上限)。
 
 #### 2.3.3 页面（UI-01、FR-04～FR-08）
 
@@ -186,11 +189,12 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 - 打开文件：`tab.actions.openResource(fileAddressFor(sessionId, cwd, path), panel.isFloating ? undefined : { paneId: panel.id })`，与 `FilesBody.tsx:47` 同法；已打开的资源 tab 由右侧栏聚焦（AC-04 “不重复打开”由框架保证）。
 - 页面类 tab 在同一分栏内去重（右侧栏 README“页 tab 始终只在目标分栏内去重”），满足 UI-01“已打开时切换到已有 tab”。
 - 树形可访问性：`role="tree"` / `treeitem` / `aria-expanded`，上下键移动焦点；组件优先复用 `ui-primitives`，具体组件在 T5 按 `dsh-client-ui-ux` 选定。
+- 不完整清单与超限原因（K8）：展开的 Feature 清单为 `incomplete` 时，在文件行之后加一行提示 COPY-15；过滤视图中该 Feature 展开时同样显示。清单为空且不完整时只显示 COPY-15，不显示 COPY-10。`Load` 的失败原因改为 `{ kind: 'host', message } | { kind: 'too-large' }`，渲染时 `too-large` 取 COPY-16 填入 COPY-08 / COPY-14 的 {reason}，随界面语言切换。
 - 过滤（K7）：`filter.ts` 的 `filterFeatures()` 用 `TextSearchIndex`，索引在 `useMemo` 中随 ROADMAP 与缓存变化重建。分组顺序固定，组内按匹配度排序，匹配度相同时按编号顺序（PRD BR-06）：`TextSearchIndex` 同分保持构建顺序，索引按已排序的列表构建。见[附录 §4](CODE_DESIGN.md#4-过滤filterts)。
 
 #### 2.3.4 文案（NFR-01、AC-08）
 
-`locales.ts` 定义 `sddWorkbench` 命名空间的字典，覆盖 8 种发布语言（`scripts/locale-dictionary-parity.spec.ts:293-300` 要求同一注册包含全部语言，`:380` 要求各语言键一致）。`zh`、`en` 逐字取自 PRD COPY-01～COPY-14；其余 6 种语言为 AI 翻译，未经人工校对，不在 PRD 验收范围（NFR-01）。
+`locales.ts` 定义 `sddWorkbench` 命名空间的字典，覆盖 8 种发布语言（`scripts/locale-dictionary-parity.spec.ts:293-300` 要求同一注册包含全部语言，`:380` 要求各语言键一致）。`zh`、`en` 逐字取自 PRD COPY-01～COPY-16（COPY-15 键 `feature.incomplete`，COPY-16 键 `roadmap.tooLarge`）；其余 6 种语言为 AI 翻译，未经人工校对，不在 PRD 验收范围（NFR-01）。
 
 占位符统一用英文名 `{reason}`、`{path}`、`{section}`、`{count}`：locale 插值正则为 `\{(\w+)\}`（`packages/client/locale/src/client/index.ts:476`），不匹配中文名（评审 F7）。PRD COPY 表已同步改用英文占位符，文案比对测试因此可逐字比较。
 
@@ -213,7 +217,8 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | Feature 目录内符号链接成环 | 递归不终止 | `MAX_DEPTH` 上限（K4）；Host `list` 已保证目标在工作区内 | 单元测试：模拟无限嵌套目录在上限处停止 |
 | ROADMAP 链接越界（`../../outside/...`、`../src/...`、`a/../../src/...`） | 读取工作区外内容或非规格目录 | `resolveFeatureDir` 归一化后判为 `outside`，不发请求；Host `list` 对越界目录也会拒绝（双重保护） | 单元测试（AC-07） |
 | `mai-specs` 目录本身是指向工作区外的符号链接（评审 F9） | `read` 只拒绝末端符号链接，会读到工作区外的 ROADMAP；`list` 拒绝，所有 Feature 显示 COPY-09 | 不新增防护：读取的是固定文件，Host 读权限本身允许。在 README Known Limitations 写明 | 不另设验证 |
-| 过滤时并发列出大量 Feature 目录 | 请求过多 | Feature 数量受 ROADMAP 规模限制（作业场景数十个以内）；按目录缓存，同一目录只列一次 | 不另设验证 |
+| 过滤时列出全部 Feature 目录；Feature 目录内混入 `node_modules` 等大目录；ROADMAP 异常大 | 请求数与内存无上限，页面卡死 | K8 读取数量上限：每个 Feature 最多 1 + 2000 次 `list`，ROADMAP 最多 2 万行（另多读不超过一页）或 2 MB；Feature 个数受 ROADMAP 行数约束；按目录缓存，同一目录只列一次。残余：上限按单个 Feature 计，过滤时所有 Feature 并发列目录（`WorkbenchBody.tsx:133-137`），总请求数为 Feature 个数乘以单个上限；作业场景 Feature 数十个以内，不加并发限制（评审 G6） | 单元测试（AC-10），含请求次数断言 |
+| Host 未报告文件大小（`bytes` 缺省）且 ROADMAP 单页超过 Host `maxBytes` | Host 以 `workspace-file/too-large` 拒绝该页（`packages/api/workspace-files/src/index.ts:111-137`），单页内存已由 Host 限制 | `face.ts` 把该错误码也折叠为 `sdd-workbench/roadmap-too-large`，页面同样显示 COPY-16，而非 Host 原文（评审 G2） | 单元测试（AC-10） |
 
 ## 4. 兼容性考量
 
@@ -229,5 +234,6 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | T4 过滤 | K7、附录 §4 | `src/client/filter.ts`、测试 | T2、T3 | 单元测试覆盖 AC-09（a）～（d）、多词查询（如 `999 prd`）、组内排序 |
 | T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`state.ts`、`face.ts`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；AC-07 越界行展开时注入的列目录回调不被调用，且组件只使用读取类回调；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |
 | T6 文案 | 2.3.4 | `locales.ts`（8 种语言）、文案比对测试 | T5 | `zh`、`en` 与 PRD COPY 表逐字一致；`pnpm run check:i18n` 通过 |
-| T7 README | FR-07 | 包 `README.md`、`README.zh.md`、`README.i18n.yaml` | T1～T6 | 按 README 从零执行可启动并使用；含 Model Experience 与 Known Limitations；`pnpm run test:docs` 通过 |
+| T6b 读取数量上限 | K8、附录 §6 | 修改 `face.ts`、`feature-files.ts`、`state.ts`、`WorkbenchBody.tsx`、`locales.ts`（8 种语言新增 2 个键），及对应测试与 `tests/copy.client.spec.ts` 的编号映射 | T5、T6 | 单元/组件测试覆盖 AC-10（a）～（e），断言超限后不再发出请求（ROADMAP 的 `read` 次数、Feature 的 `list` 次数）；恰好 20000 行与恰好 2000 个条目（AC-10（f））不判超限；Host `workspace-file/too-large` 显示 COPY-16；子目录失败仍优先记为 `failed`；COPY-15 在展开与过滤视图中显示；COPY-16 填入 COPY-08 与 COPY-14；`src/**` 逐文件 100% 覆盖率；文案比对测试覆盖 COPY-15/16 |
+| T7 README | FR-07 | 包 `README.md`、`README.zh.md`、`README.i18n.yaml` | T1～T6、T6b | 按 README 从零执行可启动并使用；含 Model Experience 与 Known Limitations；`pnpm run test:docs` 通过 |
 | T8 本地检查 | 全部 | — | T1～T7 | 先对照 `docs/testing.md:39` 确认“真实组合测试”是否适用于默认不加载的私有实验包，适用则用测试专用 `cordis.yml` 加 patch 启动一次并断言 tab 已注册；本包测试与覆盖率、`typecheck`、`lint`、`hygiene`、`check:i18n`、`build:check` 通过（按 `dsh-pre-push-checks` 选取，报告实际运行的命令） |

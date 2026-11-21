@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { listFeatureFiles, MAX_DEPTH, sortFiles, type ListDirectory, type ListResult } from '../src/client/feature-files.ts'
+import { listFeatureFiles, MAX_DEPTH, MAX_ENTRIES, sortFiles, type ListDirectory, type ListResult } from '../src/client/feature-files.ts'
 
 /** A directory tree: a string value is a file of that type, an object is a directory. */
 interface Tree { readonly [name: string]: Tree | 'file' | 'other' }
 
 const DIR = 'mai-specs/999-x'
 
-/** Serves `tree` as the contents of DIR, recording every path it is asked to list. */
-function fakeList(tree: Tree, failures: Readonly<Record<string, ListResult>> = {}): { list: ListDirectory; calls: string[] } {
+/** `count` files named `f0000.md` upward. */
+function manyFiles(count: number): Tree {
+  return Object.fromEntries(Array.from({ length: count }, (_, i) => [`f${String(i).padStart(4, '0')}.md`, 'file' as const]))
+}
+
+/**
+ * Serves `tree` as the contents of DIR, recording every path it is asked to list.
+ * Paths in `cut` come back marked as truncated by the Host.
+ */
+function fakeList(
+  tree: Tree,
+  failures: Readonly<Record<string, ListResult>> = {},
+  cut: ReadonlySet<string> = new Set(),
+): { list: ListDirectory; calls: string[] } {
   const calls: string[] = []
   const list: ListDirectory = async (path) => {
     calls.push(path)
@@ -16,7 +28,8 @@ function fakeList(tree: Tree, failures: Readonly<Record<string, ListResult>> = {
     let node: Tree | 'file' | 'other' | undefined = tree
     for (const part of path.slice(DIR.length).split('/').filter(Boolean)) node = typeof node === 'object' ? node[part] : undefined
     if (typeof node !== 'object') return { ok: false, code: 'workspace-file/not-found', message: `no ${path}` }
-    return { ok: true, entries: Object.entries(node).map(([name, child]) => ({ name, type: typeof child === 'object' ? 'directory' : child })) }
+    const entries = Object.entries(node).map(([name, child]) => ({ name, type: typeof child === 'object' ? 'directory' : child }))
+    return { ok: true, entries, truncated: cut.has(path) }
   }
   return { list, calls }
 }
@@ -36,6 +49,7 @@ describe('listFeatureFiles', () => {
     expect(await listFeatureFiles(list, DIR, signal)).toEqual({
       kind: 'ok',
       files: ['BRIEF.md', 'context/_INDEX.md', 'context/img/a.png', 'context/作业要求.md', 'socket', 'spec/PRD.md'],
+      incomplete: false,
     })
     // Hidden directories are never opened.
     expect(calls).toEqual([DIR, `${DIR}/spec`, `${DIR}/context`, `${DIR}/context/img`])
@@ -78,10 +92,59 @@ describe('listFeatureFiles', () => {
     const own = new AbortController().signal
     const list: ListDirectory = async (path, s) => {
       seen.push(s)
-      return { ok: true, entries: path === DIR ? [{ name: 'a', type: 'directory' }] : [] }
+      return { ok: true, entries: path === DIR ? [{ name: 'a', type: 'directory' }] : [], truncated: false }
     }
-    expect(await listFeatureFiles(list, DIR, own)).toEqual({ kind: 'ok', files: [] })
+    expect(await listFeatureFiles(list, DIR, own)).toEqual({ kind: 'ok', files: [], incomplete: false })
     expect(seen).toEqual([own, own])
+  })
+})
+
+describe('listFeatureFiles limits', () => {
+  it('reads exactly MAX_ENTRIES entries as a complete listing', async () => {
+    // AC-10 (f): 1998 files and one directory at the top, one file inside it: 2000 entries.
+    expect(MAX_ENTRIES).toBe(2000)
+    const { list, calls } = fakeList({ ...manyFiles(1998), sub: { 'x.md': 'file' } })
+    const listing = await listFeatureFiles(list, DIR, signal)
+    expect(listing.kind === 'ok' && [listing.files.length, listing.incomplete]).toEqual([1999, false])
+    expect(calls).toEqual([DIR, `${DIR}/sub`])
+  })
+
+  it('stops at the entry past MAX_ENTRIES, lists no further directory, and marks the listing incomplete', async () => {
+    // AC-10 (d): 1997 files and two directories at the top (1999), two files in each below.
+    // The first file of d1 is entry 2000; the second is entry 2001, so d2 is never listed.
+    const { list, calls } = fakeList({ ...manyFiles(1997), d1: { 'a.md': 'file', 'b.md': 'file' }, d2: { 'c.md': 'file', 'd.md': 'file' } })
+    const listing = await listFeatureFiles(list, DIR, signal)
+    expect(listing.kind === 'ok' && [listing.files.length, listing.files.includes('d1/a.md'), listing.incomplete]).toEqual([1998, true, true])
+    expect(calls).toEqual([DIR, `${DIR}/d1`])
+  })
+
+  it('stops inside the first directory listing when it alone passes the limit', async () => {
+    const { list, calls } = fakeList({ ...manyFiles(MAX_ENTRIES), late: { 'x.md': 'file' } })
+    const listing = await listFeatureFiles(list, DIR, signal)
+    expect(listing.kind === 'ok' && [listing.files.length, listing.incomplete]).toEqual([MAX_ENTRIES, true])
+    expect(calls).toEqual([DIR])
+  })
+
+  it('does not count hidden entries', async () => {
+    const { list } = fakeList({ ...manyFiles(MAX_ENTRIES), '.git': manyFiles(5), '.DS_Store': 'file' })
+    const listing = await listFeatureFiles(list, DIR, signal)
+    expect(listing.kind === 'ok' && [listing.files.length, listing.incomplete]).toEqual([MAX_ENTRIES, false])
+  })
+
+  it('marks a listing the Host cut short as incomplete and still lists the other directories', async () => {
+    // AC-10 (e).
+    const { list, calls } = fakeList({ spec: { 'PRD.md': 'file' }, test: { 'PLAN.md': 'file' } }, {}, new Set([`${DIR}/spec`]))
+    expect(await listFeatureFiles(list, DIR, signal)).toEqual({ kind: 'ok', files: ['spec/PRD.md', 'test/PLAN.md'], incomplete: true })
+    expect(calls).toEqual([DIR, `${DIR}/spec`, `${DIR}/test`])
+  })
+
+  it('reports a failed subdirectory as failed even after a Host cut', async () => {
+    const { list } = fakeList(
+      { spec: {}, test: {} },
+      { [`${DIR}/test`]: { ok: false, code: 'workspace-file/io', message: 'test unreadable' } },
+      new Set([`${DIR}/spec`]),
+    )
+    expect(await listFeatureFiles(list, DIR, signal)).toEqual({ kind: 'failed', reason: 'test unreadable' })
   })
 })
 

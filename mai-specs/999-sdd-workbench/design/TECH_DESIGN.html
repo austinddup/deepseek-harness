@@ -185,6 +185,7 @@
 <ul>
 <li><b>只做 Client 插件。</b>Host 侧无逻辑，不新增接口；读取全部复用 <code>remote.workspaceFiles</code> 的 <code>read</code> 与 <code>list</code>。</li>
 <li><b>只读且不出 mai-specs。</b><code>read</code> 本身允许读工作区外路径，所以插件只读固定相对路径 <code>mai-specs/ROADMAP.md</code>；Feature 目录先在插件内归一化，必须位于 <code>mai-specs/</code> 之下，再交给只能列工作区内目录的 <code>list</code>，形成双重保护。</li>
+<li><b>读取总量有上限。</b>ROADMAP 先用 <code>stat</code> 查大小，超过 2 MB 或累计超过 2 万行即停止并丢弃已读内容，整页报“文件过大”；每个 Feature 累计最多列 2000 个条目，超出或 Host 返回截断时照常显示已读到的文件并提示列表不完整。插件不修改文件。</li>
 <li><b>纯函数承载规则。</b>解析、越界判断、排序、过滤都不依赖 React 与网络；页面组件只管状态与渲染，读取能力以回调注入，组件不接触 <code>ctx</code>。</li>
 <li><b>遵守仓库通用规则。</b>过滤用仓库统一的 <code>TextSearchIndex</code>（编号、标题模糊匹配，路径子串匹配，多词，按匹配度排序）；文案覆盖 8 种发布语言。</li>
 <li><b>复用现成能力。</b>引导页卡片、文档预览、文件地址函数、UI 基础组件都用已有的；不自绘 Markdown，不新画图标，不加插件配置。</li>
@@ -239,7 +240,7 @@
   class FileListing {
     &lt;&lt;union&gt;&gt;
     +loading()
-    +ok(files)
+    +ok(files, incomplete)
     +missing()
     +failed(reason)
   }
@@ -248,8 +249,8 @@
     +noWorkspace()
     +loading()
     +uninitialized()
-    +failed(reason)
-    +ready(roadmap, refreshing, refreshError)
+    +failed(Reason)
+    +ready(roadmap, refreshing, refreshError Reason)
   }
   RoadmapFeature --&gt; FeatureDir
   Load --&gt; RoadmapFeature : ready 按分区持有
@@ -270,13 +271,14 @@
   participant P as 文档预览
   U-&gt;&gt;G: 点击 SDD 工作台卡片
   G-&gt;&gt;B: 打开页面 tab
-  B-&gt;&gt;W: read(mai-specs/ROADMAP.md) 分页到 eof（经注入回调）
-  W--&gt;&gt;B: 文本 / not-found / 其他错误
+  B-&gt;&gt;W: stat(mai-specs/ROADMAP.md)，超过 2 MB 即停
+  B-&gt;&gt;W: read 分页到 eof，累计超过 2 万行即停并丢弃已读页
+  W--&gt;&gt;B: 文本 / not-found / 过大 / 其他错误
   B-&gt;&gt;B: parseRoadmap 按分区分组
   U-&gt;&gt;B: 展开 Feature
   B-&gt;&gt;B: resolveFeatureDir，越界则不发请求
-  B-&gt;&gt;W: list(目录) 逐层，最多 8 层（经注入回调）
-  W--&gt;&gt;B: 条目 / not-found / outside-workspace / 其他错误
+  B-&gt;&gt;W: list(目录) 逐层，最多 8 层、累计 2000 个条目
+  W--&gt;&gt;B: 条目与 truncated / not-found / outside-workspace / 其他错误
   U-&gt;&gt;B: 点击文件
   B-&gt;&gt;P: openResource(fileAddressFor(...))
   P--&gt;&gt;U: 渲染预览，已打开则聚焦原 tab</pre></details>
@@ -311,12 +313,18 @@
   }
   class feature_files_ts {
     +MAX_DEPTH = 8
+    +MAX_ENTRIES = 2000
     +listFeatureFiles(list, dir, signal) FileListing
     +sortFiles(files) string[]
   }
   class filter_ts {
     +buildIndex(roadmap, filesOf, previous?) TextSearchIndex
     +filterFeatures(index, query) Result
+  }
+  class face_ts {
+    +MAX_ROADMAP_LINES = 20000
+    +MAX_ROADMAP_BYTES = 2 MB
+    +workbenchFace(remote, sessionId)
   }
   class TextSearchIndex {
     &lt;&lt;已有&gt;&gt;
@@ -332,6 +340,7 @@
     -inject readRoadmap / listDirectory
   }
   client_index_ts --&gt; WorkbenchBody
+  client_index_ts --&gt; face_ts
   WorkbenchBody --&gt; roadmap_ts
   WorkbenchBody --&gt; feature_files_ts
   WorkbenchBody --&gt; filter_ts
@@ -591,10 +600,97 @@ const isOpen = (f: FilteredFeature) =&gt; query === &#x27;&#x27;
   ? state.expanded.has(f.feature.key)
   : defaultOpen(f) !== state.filterToggled.has(f.feature.key)               // 点一次翻转一次
 // 关键词清空 → filterToggled 清空，回到 expanded）</code></pre>
+<p class="code-label">拟议代码 · face.ts · readRoadmap：先查大小再分页，超限即停并丢弃已读页</p>
+<pre tabindex="0"><code class="language-ts">export const MAX_ROADMAP_LINES = 20_000
+export const MAX_ROADMAP_BYTES = 2 * 1024 * 1024
+/** 插件自定义的失败码；不是 Host 错误码，state.ts 据此显示 “文件过大”原因。 */
+export const ROADMAP_TOO_LARGE = &#x27;sdd-workbench/roadmap-too-large&#x27;
+
+const tooLarge = { ok: false, code: ROADMAP_TOO_LARGE, message: &#x27;&#x27; } as const
+const oversized = (bytes: number | undefined) =&gt; bytes !== undefined &amp;&amp; bytes &gt; MAX_ROADMAP_BYTES
+
+readRoadmap: async (signal) =&gt; {
+  // 先查大小：Host 报告了 bytes 且超限时，一行内容都不读。
+  const stat = await remote.workspaceFiles.stat(sessionId, ROADMAP_PATH, signal)
+  if (!stat.ok) return fold(stat)                                   // not-found 等与 read 一致
+  if (oversized(stat.value.bytes)) return tooLarge
+  const pages: string[] = []
+  let total = 0
+  for (let offset = 1; ; ) {
+    const page = await remote.workspaceFiles.read(sessionId, ROADMAP_PATH, { offset }, signal)
+    if (!page.ok) return page.error.code === &#x27;workspace-file/too-large&#x27; ? tooLarge : fold(page)   // 单页超过 Host maxBytes
+    if (oversized(page.value.bytes)) return tooLarge                // 文件在两次请求之间变大
+    total += page.value.lines
+    if (total &gt; MAX_ROADMAP_LINES) return tooLarge                  // 已读页随 pages 一起丢弃
+    if (page.value.lines &gt; 0) pages.push(page.value.text)
+    if (page.value.eof || page.value.lines === 0) return { ok: true, text: pages.join(&#x27;\n&#x27;) }
+    offset += page.value.lines
+  }
+}</code></pre>
+<p class="code-label">拟议代码 · feature-files.ts · listFeatureFiles：累计条目上限与 Host 截断都标记不完整；截断只标记，达到上限才停止</p>
+<pre tabindex="0"><code class="language-ts">/** 每个 Feature 累计最多读入的非隐藏条目数（文件与子目录合计）。 */
+export const MAX_ENTRIES = 2000
+
+export type FileListing =
+  | { readonly kind: &#x27;loading&#x27; }
+  | { readonly kind: &#x27;ok&#x27;; readonly files: readonly string[]; readonly incomplete: boolean }   // incomplete → “列表不完整”提示
+  | { readonly kind: &#x27;missing&#x27; }
+  | { readonly kind: &#x27;failed&#x27;; readonly reason: string }
+
+// ListDirectory 的成功结果增加 truncated（face.ts 原样转交 Host 的值）。
+export type ListResult =
+  | { readonly ok: true; readonly entries: readonly WorkspaceDirectoryEntry[]; readonly truncated: boolean }
+  | { readonly ok: false; readonly code: string; readonly message: string }
+
+export async function listFeatureFiles(list: ListDirectory, dir: string, signal: AbortSignal): Promise&lt;FileListing&gt; {
+  const files: string[] = []
+  let counted = 0
+  let truncated = false                                             // Host 截断了某个目录：只做标记，继续列
+  let capped = false                                                // 达到 MAX_ENTRIES：停止一切列目录
+  let level = [&#x27;&#x27;]
+  for (let depth = 0; level.length &gt; 0 &amp;&amp; depth &lt;= MAX_DEPTH &amp;&amp; !capped; depth++) {
+    const next: string[] = []
+    for (const rel of level) {
+      const answer = await list(rel === &#x27;&#x27; ? dir : `${dir}/${rel}`, signal)
+      if (!answer.ok) return /* 与 §3 相同：根目录缺失 → missing，其他 → failed（失败优先于不完整） */
+      if (answer.truncated) truncated = true
+      for (const entry of answer.entries) {
+        if (entry.name.startsWith(&#x27;.&#x27;)) continue
+        if (counted === MAX_ENTRIES) { capped = true; break }       // 第 2001 个：停止
+        counted++
+        const path = rel === &#x27;&#x27; ? entry.name : `${rel}/${entry.name}`
+        if (entry.type === &#x27;directory&#x27;) next.push(path)
+        else files.push(path)
+      }
+      if (capped) break                                             // 不再列同层其余目录
+    }
+    level = next
+  }
+  return { kind: &#x27;ok&#x27;, files: sortFiles(files), incomplete: truncated || capped }
+}</code></pre>
+<p class="code-label">拟议代码 · state.ts / WorkbenchBody.tsx · 失败原因区分 Host 错误与过大，渲染时按界面语言取文案</p>
+<pre tabindex="0"><code class="language-ts">/** ROADMAP 读取失败的原因；too-large 在渲染时取 “文件过大”原因，随界面语言切换。 */
+export type Reason = { readonly kind: &#x27;host&#x27;; readonly message: string } | { readonly kind: &#x27;too-large&#x27; }
+
+// Load 中 failed.reason 与 ready.refreshError 由 string 改为 Reason。
+export async function load(previous: Load, read: ReadRoadmap, signal: AbortSignal): Promise&lt;Load&gt; {
+  const answer = await read(signal)
+  if (answer.ok) return { kind: &#x27;ready&#x27;, roadmap: parseRoadmap(answer.text), refreshing: false, refreshError: undefined }
+  const reason: Reason = answer.code === ROADMAP_TOO_LARGE ? { kind: &#x27;too-large&#x27; } : { kind: &#x27;host&#x27;, message: answer.message }
+  if (previous.kind === &#x27;ready&#x27;) return { ...previous, refreshing: false, refreshError: reason }
+  return answer.code === &#x27;workspace-file/not-found&#x27; ? { kind: &#x27;uninitialized&#x27; } : { kind: &#x27;failed&#x27;, reason }
+}
+
+// WorkbenchBody.tsx
+const reasonText = (t: T, reason: Reason) =&gt; reason.kind === &#x27;too-large&#x27; ? t(&#x27;roadmap.tooLarge&#x27;) : reason.message
+
+// childRows：ok 清单
+//   files 为空且 !incomplete → “没有文件”提示
+//   列出（过滤时为 onlyFiles 或全部）文件行；incomplete → 末尾加 note 行 “列表不完整”提示（files 为空时只有这一行）</code></pre>
 </section>
 <section id="summary">
 <h2><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>方案小结</h2>
-<p>只新增一个实验性 Client 插件包：在右侧栏注册“SDD 工作台”页，用已有的工作区文件接口读取 <code>mai-specs</code>，用已有的文档预览打开文件。最关键的取舍是加载方式：用包内 patch 文件的相对路径插件名启动，避免发布包依赖实验性包；这一点已在实施第一步的最小验证中确认可行。</p>
+<p>只新增一个实验性 Client 插件包：在右侧栏注册“SDD 工作台”页，用已有的工作区文件接口读取 <code>mai-specs</code>，用已有的文档预览打开文件。最关键的取舍是加载方式：用包内 patch 文件的相对路径插件名启动，避免发布包依赖实验性包；这一点已在实施第一步的最小验证中确认可行。读取总量按 ROADMAP 行数与大小、每个 Feature 的条目数设上限，防止异常大的数据拖垮页面。</p>
 </section>
   </main>
   <script type="module">

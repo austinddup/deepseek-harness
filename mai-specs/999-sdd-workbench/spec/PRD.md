@@ -1,6 +1,6 @@
 # PRD：SDD 工作台：Feature 导航与规格查看
 
-> 状态：已评审（2026-11-20 随技术方案评审修订） | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
+> 状态：已评审（2026-11-20 随技术方案评审修订）；2026-11-21 增补读取数量上限（BR-07、NFR-04、AC-10、COPY-15/16），技术方案已同步并完成增量评审 | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
 
 [返回需求简报](../BRIEF.md)
 
@@ -97,11 +97,12 @@ flowchart LR
 | 无工作目录 | 当前会话没有工作目录 | COPY-05 | 切换到有工作目录的会话 |
 | 未初始化 | `mai-specs/` 或 `ROADMAP.md` 不存在 | COPY-06 | 在项目中初始化 my-ai-infra 后点刷新 |
 | 无 Feature | ROADMAP 存在但三个分区都没有 Feature 行 | COPY-07 | 创建 Feature 后点刷新 |
-| 读取失败 | 首次读取 ROADMAP 出错（权限、IO、不是普通文件、无法解码等） | 整页显示 COPY-08，并显示刷新按钮 | 点刷新重试 |
-| 刷新失败 | 列表已显示后再次读取 ROADMAP 出错 | 保留上次的列表，顶部显示 COPY-14 | 点刷新重试；成功后提示消失 |
+| 读取失败 | 首次读取 ROADMAP 出错（权限、IO、不是普通文件、无法解码等），或 ROADMAP 超过 BR-07 上限 | 整页显示 COPY-08，并显示刷新按钮；超过上限时 {reason} 为 COPY-16 | 点刷新重试 |
+| 刷新失败 | 列表已显示后再次读取 ROADMAP 出错，或 ROADMAP 超过 BR-07 上限 | 保留上次的列表，顶部显示 COPY-14；超过上限时 {reason} 为 COPY-16 | 点刷新重试；成功后提示消失 |
 | Feature 目录缺失 | ROADMAP 有该行，但目录不存在或位于 `mai-specs/` 之外 | 展开后显示 COPY-09 | 修正目录或 ROADMAP 后刷新 |
 | 目录读取失败 | 目录存在但无法列出（无权限、IO 错误、不是目录等） | 展开后显示 COPY-13 | 修复后点刷新 |
 | 目录为空 | Feature 目录下没有文件 | 展开后显示 COPY-10 | 添加文件后点刷新 |
+| 文件清单不完整 | Feature 目录超过 BR-07 的条目上限，或 Host 返回某个目录已截断 | 展开后照常列出已读到的文件，并在其后显示 COPY-15 | 精简目录后点刷新 |
 | 文件打开失败 | 点击时文件已删除或无法读取 | 由文档预览显示其已有的文件状态与错误提示；工作台列表不变 | 刷新列表 |
 | 无匹配 | 过滤关键词没有匹配任何 Feature 或文件 | COPY-12 | 修改或清空关键词 |
 
@@ -117,12 +118,14 @@ flowchart LR
 | BR-04 | 只读：插件不创建、修改、删除、移动任何文件，不更改 ROADMAP 或 BRIEF 状态 | 全部 |
 | BR-05 | 无法解析的 ROADMAP 行跳过，不影响其他行显示：缺编号、缺标题，或标题列没有相对路径链接（纯文本、URL、绝对路径、锚点）。Feature 目录必须位于 `mai-specs/` 之下：解析到 `mai-specs/` 之外的目录（包括工作目录之外）不读取，该行显示，展开时按目录缺失处理 | FR-02 |
 | BR-06 | 过滤遵循 DSH Client 搜索规则：不区分大小写与全半角；编号与标题按子串或词首模糊匹配（如 `sdw` 匹配 “SDD Workbench”），文件相对路径只按连续子串匹配；关键词按空格拆分，每个词都须命中同一 Feature 的编号或标题，或同一文件的路径与所属 Feature 的编号、标题。编号或标题命中时显示该 Feature（展开后列出全部文件）；仅文件命中时显示该 Feature 并自动展开，只列出匹配的文件。分组顺序不变，组内按匹配度排序，匹配度相同时按 BR-02 的编号顺序。过滤会读取尚未展开的 Feature 的文件清单。分组标题数量改为匹配数，无匹配的分组隐藏。不搜索文件正文 | FR-08 |
+| BR-07 | 读取总量有上限，防止异常大的数据拖垮页面：（1）ROADMAP 超过 20000 行（行数按 Host 分页读取返回的行数累计，末尾换行不另算一行），或 Host 报告的文件大小超过 2 MB（2×1024×1024 字节），或 Host 因单页过大拒绝读取时，不再继续读取，已读到的内容丢弃、不解析也不显示，按读取失败处理（首次读取整页显示 COPY-08，刷新时保留上次的列表并显示 COPY-14）；插件不修改 ROADMAP，由用户检查并精简后刷新；（2）每个 Feature 递归列目录累计最多读入 2000 个条目（文件与子目录合计，以 `.` 开头的不计），遇到第 2001 个条目即停止，不再列出更深或剩余的目录；恰好 2000 个条目不算超限；超过上限或 Host 返回任一目录已截断时，该 Feature 的文件清单标记为不完整，只显示已读到的文件；超过上限时读到哪些条目取决于逐层读取的顺序，不作保证。同一 Feature 既有子目录读取失败又超过上限时，按目录读取失败处理（COPY-13）。过滤时同样适用，只在已读到的文件中匹配；过滤视图中展开的不完整 Feature 同样显示 COPY-15；已读到的文件都不匹配时该 Feature 不出现在结果中，不额外提示 | FR-02、FR-03、FR-06、FR-08 |
 
 | 非功能 ID | 性能、可靠性、安全或可访问性要求 | 适用条件与验证口径 |
 |---|---|---|
 | NFR-01 | 界面文案通过 DSH 本地化字典提供中文与英文，英文用句首大写；按仓库要求同时提供其余 6 种发布语言（ja、es、fr、de、ru、pt），由 AI 翻译，不在本需求验收范围 | `verify-client-ui-i18n` 门禁通过 |
 | NFR-02 | 遵守工作区访问限制：所有读取经 Host 现有工作区文件接口，路径限制在会话工作目录内 | 单元测试覆盖越界路径被拒绝 |
 | NFR-03 | 插件以独立包提供，不修改 agent-loop 等核心包行为 | 代码评审核对改动范围 |
+| NFR-04 | 读取 ROADMAP、以及列出每个 Feature 的文件时，发出的读取请求数和读入内存的数据量都有固定上限，不随文件或目录的大小无限增长（BR-07）；Feature 个数受 ROADMAP 行数上限约束 | 单元测试覆盖超过上限时停止读取 |
 
 ## 7. 范围与边界（Scope）
 
@@ -149,13 +152,15 @@ flowchart LR
 | COPY-05 | 无工作目录 | 当前会话没有工作目录 | This session has no working directory. | — |
 | COPY-06 | 未初始化 | 未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra | mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first. | — |
 | COPY-07 | 无 Feature | ROADMAP 中还没有需求 | No features in ROADMAP yet. | — |
-| COPY-08 | 读取失败 | 无法读取 ROADMAP：{reason} | Couldn't read ROADMAP: {reason} | {reason} 为 Host 返回的错误信息 |
+| COPY-08 | 读取失败 | 无法读取 ROADMAP：{reason} | Couldn't read ROADMAP: {reason} | {reason} 为 Host 返回的错误信息；超过 BR-07 上限时为 COPY-16 |
 | COPY-09 | Feature 目录缺失 | 未找到需求目录 {path} | Feature folder {path} not found | {path} 为 ROADMAP 中该行链接的原文 |
 | COPY-10 | 目录为空 | 没有文件 | No files | — |
 | COPY-11 | 搜索框占位文字与可访问名称 | 按编号、标题或文件名过滤 | Filter by number, title, or file name | — |
 | COPY-12 | 无匹配 | 没有匹配的需求或文件 | No matching features or files | — |
 | COPY-13 | 目录读取失败 | 无法读取需求目录：{reason} | Couldn't read feature folder: {reason} | {reason} 为 Host 返回的错误信息 |
-| COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息 |
+| COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息；超过 BR-07 上限时为 COPY-16 |
+| COPY-15 | 文件清单不完整 | 文件过多，列表不完整，请检查并清理无效文件后尝试 | Too many files, so the list is incomplete. Check for and remove unneeded files, then try again. | — |
+| COPY-16 | ROADMAP 超过上限时 COPY-08、COPY-14 中的 {reason} | 文件超过 2 万行或 2 MB，请检查并精简后刷新 | the file is over 20,000 lines or 2 MB. Check it, trim it, then refresh | 英文以小写开头，因为它接在冒号后；末尾不加句号，由 COPY-08、COPY-14 的结构决定 |
 
 ## 9. 验收标准（Acceptance Criteria）
 
@@ -240,6 +245,15 @@ flowchart LR
 - **Then**：（a）只显示 Feature 999；（b）显示含 `spec/PRD.md` 的 Feature 并自动展开，只列出匹配文件；（c）显示 COPY-12；（d）恢复完整列表与原展开状态
 - **验证方式**：过滤逻辑单元测试；人工操作抽查
 
+### AC-10：读取数量上限
+
+**关联**：BR-07、NFR-04
+
+- **Given**：分别为（a）ROADMAP 有 20001 行；（b）Host 报告 ROADMAP 大小超过 2 MB；（c）列表已显示后 ROADMAP 增长到 20001 行；（d）某 Feature 目录及其子目录合计有 2001 个条目；（e）某 Feature 的一个子目录被 Host 返回为已截断；（f）某 Feature 目录及其子目录合计恰好有 2000 个条目
+- **When**：打开 SDD 工作台页（c 为点击刷新；d、e、f 为展开该 Feature，或输入能匹配其文件的过滤词）
+- **Then**：（a）（b）整页显示 COPY-08，{reason} 为 COPY-16，且不再发出后续的 ROADMAP 读取请求；（c）保留上次的列表，顶部显示 COPY-14，{reason} 为 COPY-16；（d）遇到第 2001 个条目后不再发出列目录请求，列出已读到的文件并显示 COPY-15；（e）列出已读到的文件并显示 COPY-15；（f）列出全部文件，不显示 COPY-15
+- **验证方式**：单元/组件测试覆盖 a～f，包括请求次数；不要求人工构造大文件
+
 ## 待确认事项
 
 | 问题/假设 | 来源 | 影响的编号/范围 | 是否阻塞 | 决策人/状态 |
@@ -254,6 +268,8 @@ flowchart LR
 | 过滤遵循 DSH Client 搜索规则（模糊匹配、多词、按匹配度排序） | 方案评审 F2，用户决策 2026-11-20（[评审记录](../review/design_review.md)） | BR-06 | 否 | austin / 已确认 |
 | 插件以独立包挂载在哪个 bundle/profile，以及 README 启动命令形式 | 本 PRD 起草 | FR-07 | 否 | 已在[技术方案](../design/TECH_DESIGN.md)决定，加载方式已由 T1 验证 |
 | 文档预览能否通过 Host 读取任意工作区内 `.md`（假设可以，与“文件”页一致） | 代码调研（README） | FR-05 | 否 | 已核验：可以（见[技术方案](../design/TECH_DESIGN.md)） |
+| 读取数量上限：ROADMAP 2 万行或 2 MB、每个 Feature 2000 个条目，超限时提示 | 用户决策 2026-11-21（实施中回查安全设计发现遗漏） | BR-07、NFR-04、AC-10 | 否 | austin / 已确认 |
+| ROADMAP 超限时丢弃已读内容、整页失败（方案 A），不显示部分列表；精简由用户完成，插件不修改文件；COPY-15、COPY-16 文字 | 用户决策 2026-11-21 | BR-07、COPY-15、COPY-16 | 否 | austin / 已确认（COPY-15 中文为用户原文，英文为对应翻译） |
 
 ## 变更记录
 
@@ -267,3 +283,7 @@ flowchart LR
 | 2026-11-21 | 编写业务测试计划时发现验收标准不可判定，用户确认修订措辞（不改变功能）：文件数与分区计数改为与验收时实际数据比对；占位图标满足 AC-01；只读验证改为造数后快照比对；排序明确为码点顺序，隐藏目录同样不列出 | BR-03、AC-01、AC-02、AC-03、AC-07 |
 | 2026-11-21 | 用户决策：Feature 列表组内改按编号从小到大排列，使最新的 Feature 在最上面（原为保持 ROADMAP 行顺序）；过滤时匹配度相同按编号顺序 | BR-02、BR-06、AC-02、AC-05 |
 | 2026-11-21 | 用户决策：中文提示按仓库 UI 规范（不超过两句时句末不加句号）去掉句末“。”；英文不变 | COPY-05、COPY-06、COPY-07、COPY-14 |
+| 2026-11-21 | 用户决策：实施中回查安全设计，发现读取总量没有上限；新增读取数量上限及超限提示 | BR-07、NFR-04、UI-01 状态表、AC-10、COPY-08、COPY-15、COPY-16 |
+| 2026-11-21 | 处理 K8 增量方案评审（[评审记录](../review/design_review.md)）：用户选择 G1 选项 A，条目上限改为“超过 2000 个才算不完整”，新增 AC-10（f）恰好 2000 个；Host 因单页过大拒绝读取同样按 ROADMAP 过大处理；补 COPY-14 变量说明 | BR-07、AC-10、COPY-14 |
+| 2026-11-21 | 处理测试计划提出的歧义（[测试计划](../test/TEST_PLAN.md) Q12、Q15、Q16），按技术方案已定做法写明：2 MB 为 2×1024×1024 字节、行数按 Host 返回累计；超限时列出的条目不作保证；读取失败优先于不完整；更新文档状态 | BR-07、文档头 |
+| 2026-11-21 | 用户决策（[测试计划](../test/TEST_PLAN.md) Q14 选 A）：过滤视图中展开的不完整 Feature 显示 COPY-15；已读文件都不匹配时不额外提示 | BR-07 |

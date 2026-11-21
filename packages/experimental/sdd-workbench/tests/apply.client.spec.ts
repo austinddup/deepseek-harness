@@ -48,6 +48,7 @@ async function boot() {
     }),
   }
   const workspaceFiles = {
+    stat: vi.fn(async () => ({ ok: true, value: { bytes: 9 } })),
     read: vi.fn(async () => ({ ok: true, value: { text: '# ROADMAP', lines: 1, eof: true } })),
     list: vi.fn(async () => ({ ok: true, value: { entries: [{ name: 'BRIEF.md', type: 'file' }], truncated: false } })),
   }
@@ -88,6 +89,7 @@ describe('sdd-workbench apply', () => {
     const signal = new AbortController().signal
     await face.readRoadmap(signal)
     await face.listDirectory('mai-specs/999-x', signal)
+    expect(workspaceFiles.stat).toHaveBeenCalledWith(SESSION, 'mai-specs/ROADMAP.md', signal)
     expect(workspaceFiles.read).toHaveBeenCalledWith(SESSION, 'mai-specs/ROADMAP.md', { offset: 1 }, signal)
     expect(workspaceFiles.list).toHaveBeenCalledWith(SESSION, 'mai-specs/999-x', signal)
   })

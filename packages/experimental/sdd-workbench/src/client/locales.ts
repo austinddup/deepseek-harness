@@ -20,6 +20,8 @@ export const zh = {
   'filter.noMatch': '没有匹配的需求或文件', // COPY-12
   'feature.failed': '无法读取需求目录：{reason}', // COPY-13
   'refresh.failed': '刷新失败：{reason}。显示的是上次的结果', // COPY-14
+  'feature.incomplete': '文件过多，列表不完整，请检查并清理无效文件后尝试', // COPY-15
+  'roadmap.tooLarge': '文件超过 2 万行或 2 MB，请检查并精简后刷新', // COPY-16
 }
 
 /** Keys of the `sddWorkbench` namespace. */
@@ -48,6 +50,8 @@ export const en: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'No matching features or files',
   'feature.failed': "Couldn't read feature folder: {reason}",
   'refresh.failed': 'Refresh failed: {reason}. Showing the previous results.',
+  'feature.incomplete': 'Too many files, so the list is incomplete. Check for and remove unneeded files, then try again.',
+  'roadmap.tooLarge': 'the file is over 20,000 lines or 2 MB. Check it, trim it, then refresh',
 }
 
 /** Japanese dictionary. */
@@ -66,6 +70,8 @@ export const ja: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': '一致する機能やファイルはありません',
   'feature.failed': '機能フォルダーを読み込めません：{reason}',
   'refresh.failed': '再読み込みに失敗しました：{reason}。前回の結果を表示しています。',
+  'feature.incomplete': 'ファイルが多すぎるため、一覧は不完全です。不要なファイルを確認して削除してから、もう一度お試しください。',
+  'roadmap.tooLarge': 'ファイルが 20,000 行または 2 MB を超えています。確認して小さくしてから再読み込みしてください',
 }
 
 /** Spanish dictionary. */
@@ -84,6 +90,8 @@ export const es: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'No hay funciones ni archivos que coincidan',
   'feature.failed': 'No se pudo leer la carpeta de la función: {reason}',
   'refresh.failed': 'No se pudo actualizar: {reason}. Se muestran los resultados anteriores.',
+  'feature.incomplete': 'Hay demasiados archivos, así que la lista está incompleta. Revisa y elimina los archivos innecesarios y vuelve a intentarlo.',
+  'roadmap.tooLarge': 'el archivo supera las 20.000 líneas o los 2 MB. Revísalo, redúcelo y vuelve a actualizar',
 }
 
 /** French dictionary. */
@@ -102,6 +110,8 @@ export const fr: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'Aucune fonctionnalité ni aucun fichier correspondant',
   'feature.failed': 'Impossible de lire le dossier de fonctionnalité : {reason}',
   'refresh.failed': 'Échec de l’actualisation : {reason}. Les résultats précédents sont affichés.',
+  'feature.incomplete': 'Trop de fichiers : la liste est incomplète. Vérifiez et supprimez les fichiers inutiles, puis réessayez.',
+  'roadmap.tooLarge': 'le fichier dépasse 20 000 lignes ou 2 Mo. Vérifiez-le, allégez-le, puis actualisez',
 }
 
 /** German dictionary. */
@@ -120,6 +130,8 @@ export const de: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'Keine passenden Features oder Dateien',
   'feature.failed': 'Feature-Ordner konnte nicht gelesen werden: {reason}',
   'refresh.failed': 'Aktualisierung fehlgeschlagen: {reason}. Es werden die vorherigen Ergebnisse angezeigt.',
+  'feature.incomplete': 'Zu viele Dateien, die Liste ist unvollständig. Prüfen und entfernen Sie unnötige Dateien und versuchen Sie es dann erneut.',
+  'roadmap.tooLarge': 'die Datei hat mehr als 20.000 Zeilen oder 2 MB. Prüfen und kürzen Sie sie, dann aktualisieren Sie',
 }
 
 /** Russian dictionary. */
@@ -138,6 +150,8 @@ export const ru: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'Нет подходящих функций или файлов',
   'feature.failed': 'Не удалось прочитать папку функции: {reason}',
   'refresh.failed': 'Не удалось обновить: {reason}. Показаны предыдущие результаты.',
+  'feature.incomplete': 'Слишком много файлов, список неполный. Проверьте и удалите ненужные файлы, затем повторите попытку.',
+  'roadmap.tooLarge': 'файл превышает 20 000 строк или 2 МБ. Проверьте и сократите его, затем обновите',
 }
 
 /** Portuguese dictionary. */
@@ -156,4 +170,6 @@ export const pt: Record<SddWorkbenchKey, string> = {
   'filter.noMatch': 'Nenhuma funcionalidade ou arquivo correspondente',
   'feature.failed': 'Não foi possível ler a pasta da funcionalidade: {reason}',
   'refresh.failed': 'Falha ao atualizar: {reason}. Mostrando os resultados anteriores.',
+  'feature.incomplete': 'Há arquivos demais, então a lista está incompleta. Verifique e remova os arquivos desnecessários e tente novamente.',
+  'roadmap.tooLarge': 'o arquivo excede 20.000 linhas ou 2 MB. Verifique-o, reduza-o e atualize',
 }

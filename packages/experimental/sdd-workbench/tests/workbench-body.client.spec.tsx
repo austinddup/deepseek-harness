@@ -6,8 +6,8 @@ import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { fileAddressFor } from '@deepseek-ai/dsh-util-workspace-path'
 import type { ListDirectory, ListResult } from '../src/client/feature-files.ts'
-import type { ReadRoadmap, RoadmapText } from '../src/client/face.ts'
-import { zh } from '../src/client/locales.ts'
+import { ROADMAP_TOO_LARGE, type ReadRoadmap, type RoadmapText } from '../src/client/face.ts'
+import { en, zh } from '../src/client/locales.ts'
 import { WorkbenchBody, type WorkbenchBodyProps } from '../src/client/WorkbenchBody.tsx'
 
 const SESSION = 's-workbench' as SessionId
@@ -32,13 +32,15 @@ const TREE: Tree = {
   [`${DIR999}/review`]: ['prd_review.md', 'design_review.md'],
 }
 
-function listOf(tree: Tree): ListDirectory {
+/** Serves `tree`; directories in `cut` come back marked as truncated by the Host. */
+function listOf(tree: Tree, cut: ReadonlySet<string> = new Set()): ListDirectory {
   return async (path) => {
     const entries = tree[path]
     if (entries === undefined) return { ok: false, code: 'workspace-file/not-found', message: `no ${path}` }
     return {
       ok: true,
       entries: entries.map(entry => typeof entry === 'string' ? { name: entry, type: 'file' as const } : { name: entry[0], type: 'directory' as const }),
+      truncated: cut.has(path),
     }
   }
 }
@@ -48,6 +50,7 @@ interface Options {
   readonly read?: ReadRoadmap
   readonly list?: ListDirectory
   readonly floating?: boolean
+  readonly dictionary?: Readonly<Record<string, string>>
 }
 
 function mount(options: Options = {}) {
@@ -65,7 +68,7 @@ function mount(options: Options = {}) {
     }),
     readRoadmap: read,
     listDirectory: list,
-    t,
+    t: options.dictionary === undefined ? t : makeTranslate(options.dictionary),
   }) as unknown as WorkbenchBodyProps
   const view = render(<WorkbenchBody {...props()} />)
   const rerender = () => { view.rerender(<WorkbenchBody {...props()} />) }
@@ -389,5 +392,73 @@ describe('keyboard (UI-01 accessibility)', () => {
     fireEvent.focus(row999)
     fireEvent.click(section!)
     expect(rows(view.container)[0]!.tabIndex).toBe(0)
+  })
+})
+
+describe('read limits (AC-10, BR-07)', () => {
+  /** The texts of the file and note rows, in order. */
+  const childTexts = (root: HTMLElement) => rows(root)
+    .filter(element => element.dataset.workbenchRow === 'file' || element.dataset.workbenchRow === 'note')
+    .map(element => element.textContent)
+  const tooLarge: RoadmapText = { ok: false, code: ROADMAP_TOO_LARGE, message: '' }
+
+  it('refuses an oversized ROADMAP on the first read with the page\'s own reason and no rows', async () => {
+    // AC-10 (a) (b): the injected read reports the limit; how it is detected is covered by face.client.spec.ts.
+    const { view } = mount({ read: async () => tooLarge })
+    await waitFor(() => { expect(state(view.container)).toBe('failed') })
+    expect(view.container.textContent).toContain('无法读取 ROADMAP：文件超过 2 万行或 2 MB，请检查并精简后刷新')
+    expect(rows(view.container)).toEqual([])
+    expect(refresh(view.container).disabled).toBe(false)
+  })
+
+  it('keeps the list when a refresh finds the ROADMAP oversized, in the current language', async () => {
+    // AC-10 (c).
+    const reads = deferredReads()
+    const { view } = mount({ read: reads.read, dictionary: en })
+    await reads.answer(0, { ok: true, text: roadmap([R999]) })
+    fireEvent.click(refresh(view.container))
+    await reads.answer(1, tooLarge)
+    expect(view.container.querySelector('[data-workbench-notice]')?.textContent)
+      .toBe('Refresh failed: the file is over 20,000 lines or 2 MB. Check it, trim it, then refresh. Showing the previous results.')
+    expect(feature(view.container, '999')).not.toBeNull()
+  })
+
+  it('says an incomplete listing is incomplete below its files, expanded or filtered', async () => {
+    // AC-10 (d) (e): the listing itself is covered by feature-files.client.spec.ts.
+    const { view } = mount({ list: listOf(TREE, new Set([`${DIR999}/review`])) })
+    await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
+    fireEvent.click(feature(view.container, '999'))
+    await waitFor(() => { expect(file(view.container, 'BRIEF.md')).not.toBeNull() })
+    expect(childTexts(view.container).slice(-2)).toEqual(['spec/PRD.md', zh['feature.incomplete']])
+    fireEvent.change(filter(view.container), { target: { value: 'prd' } })
+    await waitFor(() => { expect(file(view.container, 'BRIEF.md')).toBeNull() })
+    expect(childTexts(view.container)).toEqual(['review/prd_review.md', 'spec/PRD.md', zh['feature.incomplete']])
+  })
+
+  it('shows only the incomplete note, not the empty one, when an incomplete listing has no files', async () => {
+    const { view } = mount({ list: listOf({ [DIR999]: [] }, new Set([DIR999])) })
+    await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
+    fireEvent.click(feature(view.container, '999'))
+    await waitFor(() => { expect(view.container.textContent).toContain(zh['feature.incomplete']) })
+    expect(view.container.textContent).not.toContain(zh['feature.empty'])
+  })
+
+  it('keeps the incomplete note apart from a file named note', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { view } = mount({ list: listOf({ [DIR999]: ['note'] }, new Set([DIR999])) })
+    await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
+    fireEvent.click(feature(view.container, '999'))
+    await waitFor(() => { expect(file(view.container, 'note')).not.toBeNull() })
+    expect(view.container.textContent).toContain(zh['feature.incomplete'])
+    expect(errors.mock.calls.filter(call => String(call[0]).includes('same key'))).toEqual([])
+    errors.mockRestore()
+  })
+
+  it('shows no incomplete note for a complete listing', async () => {
+    const { view } = mount()
+    await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
+    fireEvent.click(feature(view.container, '999'))
+    await waitFor(() => { expect(file(view.container, 'BRIEF.md')).not.toBeNull() })
+    expect(view.container.textContent).not.toContain(zh['feature.incomplete'])
   })
 })
