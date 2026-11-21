@@ -29,6 +29,9 @@ const KEYS: Record<string, SddWorkbenchKey> = {
   'COPY-14': 'refresh.failed',
   'COPY-15': 'feature.incomplete',
   'COPY-16': 'roadmap.tooLarge',
+  'COPY-17': 'section.in-progress',
+  'COPY-18': 'section.planned',
+  'COPY-19': 'section.done',
 }
 
 /** Rows of the final copy table: id, place, zh, en, variable rules. */

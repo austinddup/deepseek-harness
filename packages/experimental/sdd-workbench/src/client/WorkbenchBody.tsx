@@ -55,14 +55,14 @@ const LEVEL = { section: 1, feature: 2, file: 3, note: 3 } as const
  */
 function rowsOf(state: WorkbenchState, roadmap: Roadmap, filtered: FilteredRoadmap | 'all', t: Translate): Row[] {
   const rows: Row[] = []
-  for (const { key: section, heading } of SECTIONS) {
+  for (const { key: section } of SECTIONS) {
     const entries: readonly { feature: RoadmapFeature; filtered: FilteredFeature | undefined }[] = filtered === 'all'
       ? roadmap[section].map(feature => ({ feature, filtered: undefined }))
       : filtered[section].map(match => ({ feature: match.feature, filtered: match }))
     // A query hides the sections it matches nothing in.
     if (filtered !== 'all' && entries.length === 0) continue
     const sectionOpen = !state.collapsed.has(section)
-    rows.push({ kind: 'section', key: `section:${section}`, section, label: t('section', { section: heading, count: String(entries.length) }), open: sectionOpen })
+    rows.push({ kind: 'section', key: `section:${section}`, section, label: t('section', { section: t(`section.${section}`), count: String(entries.length) }), open: sectionOpen })
     if (!sectionOpen) continue
     for (const entry of entries) {
       const open = isOpen(state, entry.feature, entry.filtered)

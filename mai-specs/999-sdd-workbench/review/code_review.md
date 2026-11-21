@@ -6,11 +6,18 @@
 
 ## 1. 总体结论
 
-**有条件合并（2026-11-21 复评后）。** 实现与 PRD、技术方案一致，AC-01～AC-10 的开发测试证据齐全，没有 P0。首轮发现中，P1-1、P2-1、P2-2 已修复，复核依据见第 3 节。P2-3 由用户决定延后，不阻断。
+**最终结论（2026-11-21 收尾复评）：建议合并**，指本地分支 `feat/sdd-workbench` 收尾。用户已决定 `mai-specs/` 不提交上游，只在本地使用。
 
-用户已决定 `mai-specs/` 只保留在本地、不提交上游（作业场景），所以 `copy.client.spec.ts` 继续读取 PRD，不需要改。
+依据：
 
-仍需满足的条件：TEST_PLAN 的人工验收 TC-01～TC-11 还没执行。AC-01、AC-03、AC-04、AC-05 的真实界面部分只能靠人工步骤证明，需要在结项前完成。
+1. AC-01～AC-10 都有实现和自动化证据，人工验收 TC-01～TC-11 已全部执行并通过。TC-09 第一次失败，经 T9 修复后复测通过，见 [TEST_PLAN 执行结果](../test/TEST_PLAN.md#执行结果)。
+2. 评审发现中没有 P0。P1-1、P2-1、P2-2、P2-4、P2-5 已关闭，复核依据见第 3 节和第 7 节；P2-3 由用户决定延后。
+3. 收尾时评审方复核：
+   - 包测试：`pnpm exec vitest run packages/experimental/sdd-workbench` 退出 0，8 个文件、133 个用例通过。
+   - `pnpm run hygiene`：唯一失败是 vendor rescope，残留在 4 个文件里。`git diff master` 确认这 4 个文件与 master 完全一致，所以是 master 已有的问题，不是本分支引入的。
+   - 修复方报告：typecheck 退出 0，Web e2e 3 个用例通过，check:i18n 退出 0；`test:docs` 在临时移开未跟踪的 `mai-specs/README.md` 后 21 项全部通过。
+
+延后项与剩余风险见第 8 节。
 
 ## 2. 范围与证据
 
@@ -100,10 +107,10 @@
 
 | 事项 | 状态 | 完成条件 |
 |---|---|---|
-| TEST_PLAN 人工验收 TC-01～TC-11（AC-01/03/04/05 真实界面、AC-07 快照比对、AC-08 语言切换） | 未执行 | 需求负责人按 TEST_PLAN 执行并记录结果 |
-| `typecheck`、`hygiene` | 未执行。修复方报告 `build:check` 退出 0、oxlint 对包与 mai-specs 退出 0 | 在修复版本上运行，全部退出 0 |
-| 修复后的 Web e2e 回放 | 修复方报告重建 bundle 后 3 个用例通过；评审方本轮只重跑了包测试（128 个通过） | 已满足，作为修复方证据记录 |
-| `test:docs` 在干净工作区的结果 | 唯一失败来自范围外的未跟踪 `mai-specs/README.md` | 移开该文件或在干净 worktree 中重跑后通过 |
+| TEST_PLAN 人工验收 TC-01～TC-11（AC-01/03/04/05 真实界面、AC-07 快照比对、AC-08 语言切换） | 已执行（2026-11-21，主 Agent 同步）：全部通过，TC-09 经 T9 修复后复测通过，结果见 [TEST_PLAN 执行结果](../test/TEST_PLAN.md) | 已满足 |
+| `typecheck`、`hygiene` | 主 Agent 同步：`typecheck` 退出 0。评审方收尾时重跑了 `hygiene`，唯一失败是 vendor rescope，涉及 `apps/web/tests/creator-persona.e2e.ts`、`docs/upgrade-guide/v0.2.2-rc.1/subagent-interrupt-default/guide.md` 及其中文版、`packages/experimental/cua/tests/agent-scopes.spec.ts`；`git diff master` 显示这 4 个文件没有差异，问题在 master 上已存在 | 已满足 |
+| 修复后的 Web e2e 回放 | 修复方报告 T9 后 3 个用例通过；评审方没有重跑 Web e2e，收尾时重跑包测试 133 个通过 | 已满足，作为修复方证据记录 |
+| `test:docs` 在干净工作区的结果 | 主 Agent 同步：临时移开未跟踪的 `mai-specs/README.md` 后 21 项全部通过 | 已满足 |
 
 ## 5. 用户决定（2026-11-21 已决定）
 
@@ -114,3 +121,63 @@
 ## 6. 其他建议
 
 - 越界检查只比较路径文本：`mai-specs/` 下如果有一个符号链接目录指向工作区内别的位置（比如 `src/`），它会被列出来。这仍在 BR-01 的工作区边界之内，也不会写入，可以考虑在 README Known Limitations 里和 `mai-specs` 本身是符号链接的情况一起说明。
+
+## 7. 增量评审：T9 验收修订（语言切换）
+
+> 日期：2026-11-21 | 比较对象：head 提交《处理 SDD 工作台代码评审：ROADMAP 已读字节兜底上限、补记快照豁免决定》加上工作区未提交改动。范围外：用户本地配置文件，以及另一个子任务正在写的 `test/TEST_PLAN.md`（本轮未读）。
+
+**结论：有条件合并，结论不变。** 实现与修订后的 PRD 一致，未发现阻断问题。新增 P2-4 和 P2-5 两项，都只是文档同步问题。
+
+**审查内容与证据**：
+
+- **tab 标题随语言切换（缺陷修复）**：`WorkbenchTitle.tsx` 每次渲染都用 `t('title')` 取标题；`client/index.ts` 通过 `ctx.effect` 把它注册到 `sidebar.right.pane.tab.title` 和 `locale: NS`，写法与 `packages/client/ui-sidebar-files/src/client/index.ts:181-184` 的先例一致，卸载后的撤回由 `apply.client.spec.ts`（注册项从 1 个变为 2 个，卸载后为空）覆盖。`definition.ts` 里的 `title` 函数照旧保留，用于侧边栏存储的标题和引导页，两者不冲突。
+- **分组名按界面语言显示（需求变更）**：`WorkbenchBody.tsx` 把分组标签改为 ``t(`section.${section}`)``。ROADMAP 解析仍按 `roadmap.ts:8-12` 的中文标题识别分区，识别和显示分开，过滤、行键和排序都不受影响。8 种语言都补齐了 3 个键，`zh`、`en` 与 PRD COPY-17～19 逐字一致，由 `copy.client.spec.ts` 覆盖。
+- **测试**：`workbench-body.client.spec.tsx` 新增切换字典后分组名和页头随之变化的用例；`workbench-title.client.spec.tsx` 覆盖标题切换。Web e2e 在已打开的页面上切换到中文，断言 tab 标题、页头和分组名变化，同时 Feature 标题不变；ARIA 基准里的分组名改为英文。
+- **已执行**：`pnpm exec vitest run packages/experimental/sdd-workbench` 退出 0，8 个文件、133 个用例通过。修复方报告：3 次反向验证均符合预期；build:artifacts、build:check、typecheck、lint、check:i18n、verify-export-jsdoc、verify-no-unknown-casts 都退出 0；Web e2e 回放 3 个用例通过；用户在真实 DSH 中重测 TC-09 通过。这些作为修复方证据记录，本轮未重跑。
+
+**新发现**：
+
+### P2-4 技术方案中的 COPY 编号范围没有同步到 COPY-19
+
+- **位置**：`design/TECH_DESIGN.md:9`（“COPY-01～COPY-16”）、`:199`（2.3.4 文案节“逐字取自 PRD COPY-01～COPY-16”）。
+- **影响**：技术方案对需求来源的引用范围与 PRD 不一致，读者会以为 COPY-17～19 不在设计范围内。不影响功能。
+- **最小修复**：两处都改为 COPY-01～COPY-19；2.3.4 补一句“COPY-17～19 键为 `section.in-progress`、`section.planned`、`section.done`”。需要时同步 HTML 版本。
+- **是否阻断**：否。
+- **复评（主 Agent 同步，2026-11-21）**：已修复。技术方案第 9 行与 2.3.4 改为 COPY-01～COPY-19 并补键名。评审方更正：HTML 版没有重新生成，只在文件树里增量加了一行 `WorkbenchTitle.tsx`。HTML 版本来就不含 COPY 编号范围和任务编号，所以内容上不需要再同步。
+
+### P2-5 BRIEF 和 PRD 决策表没有登记分组名按界面语言显示这项用户决定
+
+- **位置**：`BRIEF.md` 的关键决策（本轮未修改）；`spec/PRD.md` 的待确认事项与决策表（约第 261～276 行）没有新增对应行，只在变更记录第 293 行出现。
+- **影响**：这项决定推翻了原 COPY-04“取 ROADMAP 原文”的规则，属于需求变更。目前只能在变更记录里找到，按决策维度追溯时容易漏掉。
+- **最小修复**：在 PRD 决策表加一行（来源：用户验收 TC-09，2026-11-21；关联 COPY-04、COPY-17～19、AC-08；austin / 已确认），并在 BRIEF 关键决策加一条，指向技术方案 T9。
+- **是否阻断**：否。
+- **复评（主 Agent 同步，2026-11-21）**：已修复。PRD 待确认事项表新增该决定行（指向技术方案 T9），BRIEF 关键决策新增 2026-11-21 一条。
+
+**是否需要单独补 PRD 评审或方案评审**：不建议单独补。理由如下：
+1. 需求侧只有一处显示规则的变更（分组名本地化）和一个缺陷修复（标题），没有触及数据范围、权限、读取边界、只读约束或任何其他 AC。
+2. 设计侧只多了一个复用已有扩展点（`sidebar.right.pane.tab.title`）的展示组件，没有新的接口、状态或风险。
+3. 本轮已核对 PRD 修订之间的一致性：UI-01 中 tab 标题和阶段分组两行、COPY-04 的变量说明、COPY-17～19 与 AC-08 互相一致，与实现和测试也一致。唯一的缺口是 P2-4 和 P2-5 这两处文档登记，修完即可，不需要单独开评审。
+
+**AC-08 的人工证据**：用户报告 TC-09 已在真实 DSH 中重测通过。TEST_PLAN 的其余人工用例仍按第 4 节记为待验证。
+
+## 8. 收尾复评（2026-11-21）
+
+**核实结果**（逐项核对文件，没有直接采信交接说明）：
+
+| 交接项 | 核实 |
+|---|---|
+| 人工验收 TC-01～TC-11 | 属实。`test/TEST_PLAN.md` 的“执行结果”节列出全部用例结论，TC-09 首次失败、T9 后复测通过，Q17 标为已处理；关闭按钮遮挡标题的问题作为非 AC 观察项记录，用户决定暂不处理 |
+| P2-4 | 属实。`design/TECH_DESIGN.md:9` 和 `:199` 已改为 COPY-01～COPY-19，并补了键名。“HTML 已重新生成”的说法不准确，已在 P2-4 复评行中更正为“增量更新”，对内容没有影响 |
+| P2-5 | 属实。`spec/PRD.md:276` 新增了决定行，`BRIEF.md:27` 新增了 2026-11-21 的关键决策 |
+| 检查结果 | 包测试和 hygiene 已由评审方重跑并核实（见第 1 节）。typecheck、Web e2e、check:i18n、test:docs 采用修复方的报告，评审方没有重跑 |
+| 第 4 节“已满足”的措辞 | 人工验收、test:docs 两行属实。typecheck/hygiene 行已改为评审方的核实结果；Web e2e 行里过时的“128 个”已改为现状 |
+
+**延后项**（不阻断，用户已决定）：
+- P2-3：树形键盘导航只实现了 APG 的基本子集，缺少左方向键回到父行、Home/End、`aria-setsize`/`aria-posinset`；刷新时按钮被禁用，焦点会丢失。
+- 选中或悬停 tab 时关闭按钮遮住标题末尾。这是 ui-dockkit 的共用规则造成的，不是本插件的缺陷。
+
+**剩余风险**：
+- 只在本地有效的前提：`mai-specs/` 不提交上游，`copy.client.spec.ts` 依赖本地的 PRD；K9 的 recorded-session 豁免也只在本地成立。将来如果提交上游，需要维护者认可豁免或补场景，把 COPY 表迁到包内，并处理 `mai-specs/README.md` 的中英配对。
+- 其余 6 种语言是 AI 翻译，没有经过人工校对（不在 NFR-01 验收范围内）。
+- 过滤时所有 Feature 并发列目录，总请求数是 Feature 个数乘以单个 Feature 的上限（方案评审 G6 已接受）。`mai-specs/` 下指向工作区内其他位置的符号链接目录会被列出（第 6 节，仍在 BR-01 的边界之内）。
+- T9 及其同步修改目前还是工作区里未提交的改动。本地合并前需要先提交，再按第 1 节的范围重跑一次包测试，确认结论对应的就是提交后的版本。

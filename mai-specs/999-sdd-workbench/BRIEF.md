@@ -24,6 +24,7 @@
 - 2026-11-20 技术方案评审前：插件放实验性目录并设为私有包，入口用占位图标，Feature 目录限定在 `mai-specs/` 之下（已同步 PRD）。详见 [技术方案](design/TECH_DESIGN.md) 1.3。
 - 2026-11-20 技术方案评审：过滤改用 DSH Client 搜索规则（已同步 PRD BR-06），删除插件配置改为常量，文案覆盖 8 种发布语言。详见 [技术方案评审记录](review/design_review.md)。
 - 2026-11-21 读取数量上限（K8）与 recorded-session 快照豁免（K9，以真实 Web 组合测试代替）。详见 [技术方案](design/TECH_DESIGN.md) 1.3 与 [代码评审记录](review/code_review.md)。
+- 2026-11-21 用户验收：分组名改为按界面语言显示（原为 ROADMAP 原文），修复切换语言后 tab 标题不变。详见 [PRD](spec/PRD.md) 变更记录与 [技术方案](design/TECH_DESIGN.md) 任务 T9。
 
 ## 上下文索引
 
@@ -33,4 +34,4 @@
 - [技术方案](design/TECH_DESIGN.md)（[HTML 审阅版](design/TECH_DESIGN.html)、[代码设计附录](design/CODE_DESIGN.md)）：已评审，F1～F11 已修订
 - [技术方案评审记录](review/design_review.md)：2026-11-20 有条件通过，F1～F11 已修订
 - [代码评审记录](review/code_review.md)：2026-11-21 有条件合并，P1-1、P2-1、P2-2 已处理，P2-3 延后
-- [业务测试计划](test/TEST_PLAN.md)：AC-01～AC-09 人工验收清单（仅规划，待 T2～T8 完成后执行）
+- [业务测试计划](test/TEST_PLAN.md)：AC-01～AC-10 验收清单与结果；2026-11-21 已执行，全部 AC 通过（TC-09 经 T9 修复后复测通过）

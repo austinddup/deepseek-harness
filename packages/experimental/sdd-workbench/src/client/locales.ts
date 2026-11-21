@@ -10,6 +10,9 @@ export const zh = {
   'guide.description': '浏览 mai-specs 中的需求与规格', // COPY-02
   refresh: '刷新', // COPY-03
   section: '{section} ({count})', // COPY-04
+  'section.in-progress': '进行中', // COPY-17
+  'section.planned': '规划中', // COPY-18
+  'section.done': '已完成', // COPY-19
   'state.noWorkspace': '当前会话没有工作目录', // COPY-05
   'state.uninitialized': '未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra', // COPY-06
   'state.noFeatures': 'ROADMAP 中还没有需求', // COPY-07
@@ -40,6 +43,9 @@ export const en: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Browse features and specs in mai-specs',
   refresh: 'Refresh',
   section: '{section} ({count})',
+  'section.in-progress': 'In progress',
+  'section.planned': 'Planned',
+  'section.done': 'Done',
   'state.noWorkspace': 'This session has no working directory.',
   'state.uninitialized': 'mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first.',
   'state.noFeatures': 'No features in ROADMAP yet.',
@@ -60,6 +66,9 @@ export const ja: Record<SddWorkbenchKey, string> = {
   'guide.description': 'mai-specs の機能と仕様を閲覧',
   refresh: '再読み込み',
   section: '{section} ({count})',
+  'section.in-progress': '進行中',
+  'section.planned': '計画中',
+  'section.done': '完了',
   'state.noWorkspace': 'このセッションには作業ディレクトリがありません。',
   'state.uninitialized': 'mai-specs/ROADMAP.md が見つかりません。先にこのプロジェクトで my-ai-infra をセットアップしてください。',
   'state.noFeatures': 'ROADMAP にはまだ機能がありません。',
@@ -80,6 +89,9 @@ export const es: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Explora funciones y especificaciones en mai-specs',
   refresh: 'Actualizar',
   section: '{section} ({count})',
+  'section.in-progress': 'En curso',
+  'section.planned': 'Planificado',
+  'section.done': 'Completado',
   'state.noWorkspace': 'Esta sesión no tiene directorio de trabajo.',
   'state.uninitialized': 'No se encontró mai-specs/ROADMAP.md. Configura primero my-ai-infra en este proyecto.',
   'state.noFeatures': 'Aún no hay funciones en el ROADMAP.',
@@ -100,6 +112,9 @@ export const fr: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Parcourir les fonctionnalités et spécifications de mai-specs',
   refresh: 'Actualiser',
   section: '{section} ({count})',
+  'section.in-progress': 'En cours',
+  'section.planned': 'Planifié',
+  'section.done': 'Terminé',
   'state.noWorkspace': 'Cette session n’a pas de répertoire de travail.',
   'state.uninitialized': 'mai-specs/ROADMAP.md introuvable. Configurez d’abord my-ai-infra dans ce projet.',
   'state.noFeatures': 'Aucune fonctionnalité dans le ROADMAP pour l’instant.',
@@ -120,6 +135,9 @@ export const de: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Features und Spezifikationen in mai-specs durchsuchen',
   refresh: 'Aktualisieren',
   section: '{section} ({count})',
+  'section.in-progress': 'In Arbeit',
+  'section.planned': 'Geplant',
+  'section.done': 'Erledigt',
   'state.noWorkspace': 'Diese Sitzung hat kein Arbeitsverzeichnis.',
   'state.uninitialized': 'mai-specs/ROADMAP.md nicht gefunden. Richte zuerst my-ai-infra in diesem Projekt ein.',
   'state.noFeatures': 'Noch keine Features im ROADMAP.',
@@ -140,6 +158,9 @@ export const ru: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Просмотр функций и спецификаций в mai-specs',
   refresh: 'Обновить',
   section: '{section} ({count})',
+  'section.in-progress': 'В работе',
+  'section.planned': 'Запланировано',
+  'section.done': 'Готово',
   'state.noWorkspace': 'У этого сеанса нет рабочего каталога.',
   'state.uninitialized': 'Файл mai-specs/ROADMAP.md не найден. Сначала настройте my-ai-infra в этом проекте.',
   'state.noFeatures': 'В ROADMAP пока нет функций.',
@@ -160,6 +181,9 @@ export const pt: Record<SddWorkbenchKey, string> = {
   'guide.description': 'Navegue por funcionalidades e especificações em mai-specs',
   refresh: 'Atualizar',
   section: '{section} ({count})',
+  'section.in-progress': 'Em andamento',
+  'section.planned': 'Planejado',
+  'section.done': 'Concluído',
   'state.noWorkspace': 'Esta sessão não tem diretório de trabalho.',
   'state.uninitialized': 'mai-specs/ROADMAP.md não encontrado. Configure o my-ai-infra neste projeto primeiro.',
   'state.noFeatures': 'Ainda não há funcionalidades no ROADMAP.',

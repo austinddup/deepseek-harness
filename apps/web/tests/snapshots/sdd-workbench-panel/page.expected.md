@@ -2,7 +2,7 @@
 - button "Refresh"
 - searchbox "Filter by number, title, or file name"
 - tree "SDD workbench":
-  - treeitem "进行中 (3)" [expanded] [level=1]
+  - treeitem "In progress (3)" [expanded] [level=1]
   - treeitem "997 Escapes the folder P2" [expanded] [level=2]
   - treeitem "Feature folder ../outside/BRIEF.md not found" [disabled] [level=3]
   - treeitem "998 Search box P2" [level=2]
@@ -10,6 +10,6 @@
   - treeitem "BRIEF.md" [level=3]
   - treeitem "design/TECH_DESIGN.md" [level=3]
   - treeitem "spec/PRD.md" [level=3]
-  - treeitem "规划中 (0)" [expanded] [level=1]
-  - treeitem "已完成 (1)" [expanded] [level=1]
+  - treeitem "Planned (0)" [expanded] [level=1]
+  - treeitem "Done (1)" [expanded] [level=1]
   - treeitem "990 First feature P1" [level=2]

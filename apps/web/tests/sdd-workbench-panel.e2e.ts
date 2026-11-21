@@ -88,7 +88,7 @@ describe('web e2e: SDD workbench', () => {
     await scaffold?.close()
   })
 
-  it('opens from the guide, lists the ROADMAP by stage, and opens a spec in the document preview', async () => {
+  it('opens from the guide, lists the ROADMAP by stage, opens a spec, and follows a language switch', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-sdd-workbench-panel'))
     const column = page.locator('[data-rightbar-col]')
     await page.locator('[data-sidebar-right-expand]').click()
@@ -112,6 +112,20 @@ describe('web e2e: SDD workbench', () => {
     await workbench.locator('[data-workbench-path="spec/PRD.md"]').click()
     await column.locator('[data-dockkit-tab]').filter({ has: page.getByText('PRD.md', { exact: true }) }).waitFor({ timeout: 15_000 })
     await column.getByText('The page lists features.').waitFor({ timeout: 15_000 })
+
+    // A language switch reaches the open page: its chip title, header, and stage names follow; ROADMAP titles do not.
+    const chip = column.locator('[data-dockkit-tab]').filter({ has: page.getByText('SDD workbench', { exact: true }) })
+    await chip.click()
+    await page.getByRole('button', { name: 'Account menu', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+    const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+    await settings.getByRole('button', { name: 'English', exact: true }).click()
+    await page.getByRole('menuitem', { name: '中文', exact: true }).click()
+    await page.keyboard.press('Escape')
+    await column.locator('[data-dockkit-tab]').filter({ has: page.getByText('SDD 工作台', { exact: true }) }).waitFor({ timeout: 10_000 })
+    await workbench.getByRole('heading', { name: 'SDD 工作台', exact: true }).waitFor({ timeout: 10_000 })
+    expect(await workbench.locator('[data-workbench-row="section"]').allInnerTexts()).toEqual(['进行中 (3)', '规划中 (0)', '已完成 (1)'])
+    expect(await workbench.locator('[data-workbench-feature="999"]').innerText()).toContain('Workbench page')
   }, 90_000)
 
   it('keeps the fixture inventory closed', async () => {

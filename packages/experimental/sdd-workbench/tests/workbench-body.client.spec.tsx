@@ -60,7 +60,9 @@ function mount(options: Options = {}) {
   const read = vi.fn(options.read ?? (async (): Promise<RoadmapText> => ({ ok: true, text: roadmap([R999]) })))
   const list = vi.fn(options.list ?? listOf(TREE))
   const openResource = vi.fn()
-  const placement = { cwd: options.cwd === undefined ? ROOT : options.cwd, floating: options.floating ?? false }
+  const placement = {
+    cwd: options.cwd === undefined ? ROOT : options.cwd, floating: options.floating ?? false, dictionary: options.dictionary,
+  }
   const props = () => ({
     sessionId: SESSION,
     useSessions: <S,>(select: (state: SessionsState) => S) =>
@@ -71,7 +73,7 @@ function mount(options: Options = {}) {
     }),
     readRoadmap: read,
     listDirectory: list,
-    t: options.dictionary === undefined ? t : makeTranslate(options.dictionary),
+    t: placement.dictionary === undefined ? t : makeTranslate(placement.dictionary),
   }) as WorkbenchBodyProps
   const view = render(<WorkbenchBody {...props()} />)
   const rerender = () => { view.rerender(<WorkbenchBody {...props()} />) }
@@ -206,6 +208,18 @@ describe('the tree (AC-02, AC-03, AC-04)', () => {
     fireEvent.change(filter(view.container), { target: { value: '甲' } })
     await waitFor(() => { expect(list).toHaveBeenCalled() })
     expect(list.mock.calls.every(([path]) => path.startsWith(DIR999))).toBe(true)
+  })
+
+  it('names the sections in the current language and follows a language switch', async () => {
+    // The ROADMAP headings stay Chinese; the labels come from the dictionary.
+    const { view, placement, rerender } = mount({ read: async () => ({ ok: true, text: roadmap([R999], [], [row('001', '旧需求', '001-old/BRIEF.md')]) }) })
+    await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
+    const sections = () => rows(view.container).filter(element => element.dataset.workbenchRow === 'section').map(element => element.textContent)
+    expect(sections()).toEqual(['进行中 (1)', '规划中 (0)', '已完成 (1)'])
+    placement.dictionary = en
+    rerender()
+    expect(sections()).toEqual(['In progress (1)', 'Planned (0)', 'Done (1)'])
+    expect(view.container.querySelector('h2')?.textContent).toBe('SDD workbench')
   })
 
   it('collapses and expands a section', async () => {

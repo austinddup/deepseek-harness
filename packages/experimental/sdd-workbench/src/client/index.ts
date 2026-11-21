@@ -1,6 +1,6 @@
 /**
  * Browser half: register `sdd-workbench` as a right-Sidebar page type with a
- * guide entry, its body under the type's id, and its dictionaries.
+ * guide entry, its body and chip title under the type's id, and its dictionaries.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
@@ -12,9 +12,11 @@ import { WORKBENCH_ID, workbenchDefinition } from './definition.ts'
 import { workbenchFace } from './face.ts'
 import { NS, de, en, es, fr, ja, pt, ru, zh } from './locales.ts'
 import { WorkbenchBody } from './WorkbenchBody.tsx'
+import { WorkbenchTitle } from './WorkbenchTitle.tsx'
 
 export type { SddWorkbenchKey } from './locales.ts'
 export type { WorkbenchBodyProps } from './WorkbenchBody.tsx'
+export type { WorkbenchTitleProps } from './WorkbenchTitle.tsx'
 export type { ReadRoadmap, RoadmapText, WorkbenchInjected } from './face.ts'
 
 /** Required browser services: the slot table, copy, the right-Sidebar tab registry, and the Workspace file reads. */
@@ -33,4 +35,8 @@ export function apply(ctx: ClientContext): void {
     { name: 'sidebar.right.pane.tab', key: WORKBENCH_ID, locale: NS, inject: sessionId => workbenchFace(ctx.remote, sessionId) },
     WorkbenchBody,
   )), 'sdd-workbench: page body')
+  ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register(
+    { name: 'sidebar.right.pane.tab.title', key: WORKBENCH_ID, locale: NS },
+    WorkbenchTitle,
+  )), 'sdd-workbench: tab title')
 }

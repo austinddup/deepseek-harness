@@ -14,12 +14,13 @@ import type { WorkbenchInjected } from '../src/client/face.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { de, en, es, fr, ja, pt, ru, zh } from '../src/client/locales.ts'
 import { WorkbenchBody } from '../src/client/WorkbenchBody.tsx'
+import { WorkbenchTitle } from '../src/client/WorkbenchTitle.tsx'
 import { apply as hostApply } from '../src/index.ts'
 
 interface Recorded {
   readonly name: string
   readonly key: string
-  readonly locale: string
+  readonly locale: string | undefined
   readonly inject: ((sessionId: SessionId) => WorkbenchInjected) | undefined
   readonly component: unknown
 }
@@ -67,7 +68,7 @@ describe('sdd-workbench apply', () => {
     expect(hostApply).not.toThrow()
   })
 
-  it('registers the page type with its guide card, the dictionaries, and the body under the type\'s id', async () => {
+  it('registers the page type with its guide card, the dictionaries, and the body and chip title under the type\'s id', async () => {
     const { tabs, registered, dictionaries, fiber } = await boot()
     onTestFinished(() => fiber.dispose())
     const definition = tabs.get(WORKBENCH_KIND)
@@ -78,7 +79,10 @@ describe('sdd-workbench apply', () => {
       .toEqual([['workbench', 'title', 'guide.description']])
     expect(dictionaries.get('sddWorkbench')).toEqual({ zh, en, ja, es, fr, de, ru, pt })
     expect(registered.map(entry => [entry.name, entry.key, entry.locale, entry.component]))
-      .toEqual([['sidebar.right.pane.tab', WORKBENCH_ID, 'sddWorkbench', WorkbenchBody]])
+      .toEqual([
+        ['sidebar.right.pane.tab', WORKBENCH_ID, 'sddWorkbench', WorkbenchBody],
+        ['sidebar.right.pane.tab.title', WORKBENCH_ID, 'sddWorkbench', WorkbenchTitle],
+      ])
   })
 
   it('hands the body only the two reads, bound to its Session', async () => {
@@ -96,7 +100,7 @@ describe('sdd-workbench apply', () => {
 
   it('takes every registration back when the plugin is disposed', async () => {
     const { tabs, registered, dictionaries, fiber } = await boot()
-    expect(registered).toHaveLength(1)
+    expect(registered).toHaveLength(2)
     await fiber.dispose()
     expect(tabs.get(WORKBENCH_KIND)).toBeUndefined()
     expect(registered).toEqual([])

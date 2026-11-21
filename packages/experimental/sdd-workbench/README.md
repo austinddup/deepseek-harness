@@ -90,6 +90,7 @@ A generation counter and an abort signal drop the results of a read that a newer
 | `src/client/feature-files.ts` | Recursive folder listing and file order |
 | `src/client/filter.ts` | Filter index and matching |
 | `src/client/state.ts` | Page state, its reducer, and which folders still need a listing |
+| `src/client/WorkbenchTitle.tsx` | The tab title, read in the current language on every render |
 | `src/client/WorkbenchBody.tsx` | The page: header, filter box, tree, keyboard navigation, and state lines |
 | `src/client/locales.ts` | Every visible string in all eight shipped languages |
 

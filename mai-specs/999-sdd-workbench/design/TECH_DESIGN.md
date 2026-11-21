@@ -6,7 +6,7 @@
 
 ## 需求依据与验收
 
-需求与验收的唯一维护源是 [PRD](../spec/PRD.md)：FR-01～FR-08、BR-01～BR-07、NFR-01～NFR-04、COPY-01～COPY-16、AC-01～AC-10。本文只引用编号，不复述规则。PRD 评审记录见 [prd_review.md](../review/prd_review.md)，方案评审记录见 [design_review.md](../review/design_review.md)。
+需求与验收的唯一维护源是 [PRD](../spec/PRD.md)：FR-01～FR-08、BR-01～BR-07、NFR-01～NFR-04、COPY-01～COPY-19、AC-01～AC-10。本文只引用编号，不复述规则。PRD 评审记录见 [prd_review.md](../review/prd_review.md)，方案评审记录见 [design_review.md](../review/design_review.md)。
 
 PRD 留给本阶段的待确认事项及结论：
 
@@ -186,6 +186,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 #### 2.3.3 页面（UI-01、FR-04～FR-08）
 
 - `client/index.ts`：`slots.register({ name: 'sidebar.right.pane.tab', key, locale, inject: sessionId => workbenchFace(ctx.remote, sessionId) }, WorkbenchBody)`，两个回调在 apply 世界中闭包 `ctx.remote.workspaceFiles`（参照 `ui-sidebar-files` 的 `createList(ctx.remote)` + `inject`）。
+- `WorkbenchTitle.tsx`：tab 标题组件，每次渲染按当前语言取 COPY-01。侧边栏在打开 tab 时把标题存为字符串，不注册该组件时切换语言后标题保持旧语言（T9）。
 - `WorkbenchBody.tsx`：从 props 取 `sessionId`、`useSessions(s => s.byId[sessionId]?.cwd)`、`useTabInfo()` 与注入的两个回调。刷新只由页头按钮触发（PRD FR-06 已删除快捷键），因此不调用 `tab.actions.bindCommands`。
 - 打开文件：`tab.actions.openResource(fileAddressFor(sessionId, cwd, path), panel.isFloating ? undefined : { paneId: panel.id })`，与 `FilesBody.tsx:47` 同法；已打开的资源 tab 由右侧栏聚焦（AC-04 “不重复打开”由框架保证）。
 - 页面类 tab 在同一分栏内去重（右侧栏 README“页 tab 始终只在目标分栏内去重”），满足 UI-01“已打开时切换到已有 tab”。
@@ -195,7 +196,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 
 #### 2.3.4 文案（NFR-01、AC-08）
 
-`locales.ts` 定义 `sddWorkbench` 命名空间的字典，覆盖 8 种发布语言（`scripts/locale-dictionary-parity.spec.ts:293-300` 要求同一注册包含全部语言，`:380` 要求各语言键一致）。`zh`、`en` 逐字取自 PRD COPY-01～COPY-16（COPY-15 键 `feature.incomplete`，COPY-16 键 `roadmap.tooLarge`）；其余 6 种语言为 AI 翻译，未经人工校对，不在 PRD 验收范围（NFR-01）。
+`locales.ts` 定义 `sddWorkbench` 命名空间的字典，覆盖 8 种发布语言（`scripts/locale-dictionary-parity.spec.ts:293-300` 要求同一注册包含全部语言，`:380` 要求各语言键一致）。`zh`、`en` 逐字取自 PRD COPY-01～COPY-19（COPY-15 键 `feature.incomplete`，COPY-16 键 `roadmap.tooLarge`，COPY-17～19 键 `section.in-progress`、`section.planned`、`section.done`，由分区键拼出，T9）；其余 6 种语言为 AI 翻译，未经人工校对，不在 PRD 验收范围（NFR-01）。
 
 占位符统一用英文名 `{reason}`、`{path}`、`{section}`、`{count}`：locale 插值正则为 `\{(\w+)\}`（`packages/client/locale/src/client/index.ts:476`），不匹配中文名（评审 F7）。PRD COPY 表已同步改用英文占位符，文案比对测试因此可逐字比较。
 
@@ -238,3 +239,4 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | T6b 读取数量上限 | K8、附录 §6 | 修改 `face.ts`、`feature-files.ts`、`state.ts`、`WorkbenchBody.tsx`、`locales.ts`（8 种语言新增 2 个键），及对应测试与 `tests/copy.client.spec.ts` 的编号映射 | T5、T6 | 单元/组件测试覆盖 AC-10（a）～（e），断言超限后不再发出请求（ROADMAP 的 `read` 次数、Feature 的 `list` 次数）；恰好 20000 行与恰好 2000 个条目（AC-10（f））不判超限；Host `workspace-file/too-large` 显示 COPY-16；子目录失败仍优先记为 `failed`；COPY-15 在展开与过滤视图中显示；COPY-16 填入 COPY-08 与 COPY-14；`src/**` 逐文件 100% 覆盖率；文案比对测试覆盖 COPY-15/16 |
 | T7 README | FR-07 | 包 `README.md`、`README.zh.md`、`README.i18n.yaml` | T1～T6、T6b | 按 README 从零执行可启动并使用；含 Model Experience 与 Known Limitations；`pnpm run test:docs` 通过 |
 | T8 本地检查 | 全部 | — | T1～T7 | 先对照 `docs/testing.md:39` 确认“真实组合测试”是否适用于默认不加载的私有实验包，适用则用测试专用 `cordis.yml` 加 patch 启动一次并断言 tab 已注册；本包测试与覆盖率、`typecheck`、`lint`、`hygiene`、`check:i18n`、`build:check` 通过（按 `dsh-pre-push-checks` 选取，报告实际运行的命令） |
+| T9 验收修订：语言切换 | PRD AC-08、COPY-04、COPY-17～19（2026-11-21 用户验收 TC-09） | 新增 `WorkbenchTitle.tsx` 并注册到 `sidebar.right.pane.tab.title`（侧边栏保存的是打开时的标题字符串，不随语言更新）；`WorkbenchBody.tsx` 分组名改用 COPY-17～19；`locales.ts` 8 种语言新增 3 个键；对应测试、文案映射与 Web 测试 | T8 | 组件测试：切换字典后标题与分组名随之变化；注册测试含标题项及其卸载；文案比对覆盖 COPY-17～19；Web 测试在已打开页面上切换到中文，断言 tab 标题、页头与分组名变化、Feature 标题不变；`src/**` 逐文件 100% 覆盖率 |

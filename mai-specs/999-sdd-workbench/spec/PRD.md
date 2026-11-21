@@ -1,6 +1,6 @@
 # PRD：SDD 工作台：Feature 导航与规格查看
 
-> 状态：已评审（2026-11-20 随技术方案评审修订）；2026-11-21 增补读取数量上限（BR-07、NFR-04、AC-10、COPY-15/16），技术方案已同步并完成增量评审 | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
+> 状态：已评审（2026-11-20 随技术方案评审修订）；2026-11-21 增补读取数量上限（BR-07、NFR-04、AC-10、COPY-15/16），技术方案已同步并完成增量评审；2026-11-21 用户验收后修订：分组阶段名按界面语言显示（COPY-04、COPY-17～19），tab 标题随语言切换（AC-08） | 负责人：austin | Profile：standard | 模板：`mai-specs/_templates/PRD.tmpl.md`
 
 [返回需求简报](../BRIEF.md)
 
@@ -82,9 +82,9 @@ flowchart LR
 | 页面区域/控件 | 新增/变更 | 对照设计的功能与交互说明 | 关联需求 |
 |---|---|---|---|
 | 引导页入口卡片 | 新增 | 图标（沿用 DSH 现有图标库，技术方案选定）、标题 COPY-01、描述 COPY-02；点击打开本页并替换引导页；本页已在该分栏打开时切换到已有 tab，不重复打开 | FR-01 |
-| tab 标题 | 新增 | 显示 COPY-01 | FR-01 |
+| tab 标题 | 新增 | 显示 COPY-01；切换界面语言后随之更新，无需重新打开 | FR-01 |
 | 页头 | 新增 | 标题 COPY-01；右侧刷新按钮（图标按钮，可访问名称 COPY-03） | FR-06 |
-| 阶段分组 | 新增 | 标题为 ROADMAP 分区名加数量（COPY-04）；可折叠，默认全部展开；空分组显示“(0)”但无子项；三个分组全部为空时不显示分组，只显示 COPY-07；ROADMAP 缺少某个分区标题时该分组按空分组处理 | FR-02 |
+| 阶段分组 | 新增 | 标题为阶段名（COPY-17～19，按界面语言显示）加数量（COPY-04）；可折叠，默认全部展开；空分组显示“(0)”但无子项；三个分组全部为空时不显示分组，只显示 COPY-07；ROADMAP 缺少某个分区标题时该分组按空分组处理 | FR-02 |
 | Feature 行 | 新增 | 展开箭头、编号、标题（超长时沿用 DSH 现有列表的单行省略样式，悬停或键盘聚焦时显示全文）、优先级（为空时不显示）；点击或 Enter/Space 切换展开与收起 | FR-02、FR-03 |
 | 搜索框 | 新增 | 占位文字 COPY-11；输入即过滤（BR-06）；Escape 清空 | FR-08 |
 | 文件行 | 新增 | 显示相对路径；点击或 Enter 打开预览 | FR-04、FR-05 |
@@ -148,7 +148,7 @@ flowchart LR
 | COPY-01 | 入口卡片标题、tab 标题、页头 | SDD 工作台 | SDD workbench | — |
 | COPY-02 | 入口卡片描述 | 浏览 mai-specs 中的需求与规格 | Browse features and specs in mai-specs | — |
 | COPY-03 | 刷新按钮可访问名称/提示 | 刷新 | Refresh | — |
-| COPY-04 | 分组标题 | {section} ({count}) | {section} ({count}) | {section} 为分区名，取 ROADMAP 原文；英文界面同样显示原文分区名；数量为整数，0 也显示 |
+| COPY-04 | 分组标题 | {section} ({count}) | {section} ({count}) | {section} 为阶段名 COPY-17～19，按界面语言显示；ROADMAP 中的中文分区标题只用于识别分区，不直接显示；数量为整数，0 也显示 |
 | COPY-05 | 无工作目录 | 当前会话没有工作目录 | This session has no working directory. | — |
 | COPY-06 | 未初始化 | 未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra | mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first. | — |
 | COPY-07 | 无 Feature | ROADMAP 中还没有需求 | No features in ROADMAP yet. | — |
@@ -161,6 +161,9 @@ flowchart LR
 | COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息；超过 BR-07 上限时为 COPY-16 |
 | COPY-15 | 文件清单不完整 | 文件过多，列表不完整，请检查并清理无效文件后尝试 | Too many files, so the list is incomplete. Check for and remove unneeded files, then try again. | — |
 | COPY-16 | ROADMAP 超过上限时 COPY-08、COPY-14 中的 {reason} | 文件超过 2 万行或 2 MB，请检查并精简后刷新 | the file is over 20,000 lines or 2 MB. Check it, trim it, then refresh | 英文以小写开头，因为它接在冒号后；末尾不加句号，由 COPY-08、COPY-14 的结构决定 |
+| COPY-17 | “进行中”分区的阶段名，填入 COPY-04 | 进行中 | In progress | — |
+| COPY-18 | “规划中”分区的阶段名，填入 COPY-04 | 规划中 | Planned | — |
+| COPY-19 | “已完成”分区的阶段名，填入 COPY-04 | 已完成 | Done | — |
 
 ## 9. 验收标准（Acceptance Criteria）
 
@@ -233,7 +236,7 @@ flowchart LR
 
 - **Given**：DSH 界面语言分别为中文和英文
 - **When**：打开引导页与 SDD 工作台页
-- **Then**：页面直接可见的 COPY-01、COPY-02、COPY-03、COPY-11 与第 8 节逐字一致；状态文案由 AC-06、AC-09 覆盖
+- **Then**：页面直接可见的 COPY-01、COPY-02、COPY-03、COPY-11 与分组阶段名 COPY-17～19 与第 8 节逐字一致；在已打开工作台页时切换界面语言，tab 标题、页头与分组阶段名随之变为对应语言，无需重新打开；Feature 标题为 ROADMAP 原文，不翻译；状态文案由 AC-06、AC-09 覆盖
 - **验证方式**：单元测试比对中英文字典与 COPY 表全部条目逐字一致；`verify-client-ui-i18n` 门禁确认文案走字典；人工切换语言抽查
 
 ### AC-09：搜索过滤
@@ -270,6 +273,7 @@ flowchart LR
 | 文档预览能否通过 Host 读取任意工作区内 `.md`（假设可以，与“文件”页一致） | 代码调研（README） | FR-05 | 否 | 已核验：可以（见[技术方案](../design/TECH_DESIGN.md)） |
 | 读取数量上限：ROADMAP 2 万行或 2 MB、每个 Feature 2000 个条目，超限时提示 | 用户决策 2026-11-21（实施中回查安全设计发现遗漏） | BR-07、NFR-04、AC-10 | 否 | austin / 已确认 |
 | ROADMAP 超限时丢弃已读内容、整页失败（方案 A），不显示部分列表；精简由用户完成，插件不修改文件；COPY-15、COPY-16 文字 | 用户决策 2026-11-21 | BR-07、COPY-15、COPY-16 | 否 | austin / 已确认（COPY-15 中文为用户原文，英文为对应翻译） |
+| 分组名按界面语言显示（COPY-17～19），不再显示 ROADMAP 原文分区名；切换语言后 tab 标题随之更新 | 用户验收 TC-09，用户决策 2026-11-21 | UI-01、COPY-04、COPY-17～19、AC-08 | 否 | austin / 已确认（实现见[技术方案](../design/TECH_DESIGN.md)任务 T9） |
 
 ## 变更记录
 
@@ -287,3 +291,4 @@ flowchart LR
 | 2026-11-21 | 处理 K8 增量方案评审（[评审记录](../review/design_review.md)）：用户选择 G1 选项 A，条目上限改为“超过 2000 个才算不完整”，新增 AC-10（f）恰好 2000 个；Host 因单页过大拒绝读取同样按 ROADMAP 过大处理；补 COPY-14 变量说明 | BR-07、AC-10、COPY-14 |
 | 2026-11-21 | 处理测试计划提出的歧义（[测试计划](../test/TEST_PLAN.md) Q12、Q15、Q16），按技术方案已定做法写明：2 MB 为 2×1024×1024 字节、行数按 Host 返回累计；超限时列出的条目不作保证；读取失败优先于不完整；更新文档状态 | BR-07、文档头 |
 | 2026-11-21 | 用户决策（[测试计划](../test/TEST_PLAN.md) Q14 选 A）：过滤视图中展开的不完整 Feature 显示 COPY-15；已读文件都不匹配时不额外提示 | BR-07 |
+| 2026-11-21 | 用户验收 TC-09 发现：切换语言后 tab 标题不变（缺陷）；用户决策分组名按界面语言显示（原为 ROADMAP 原文） | UI-01 tab 标题与阶段分组、COPY-04、COPY-17～19、AC-08 |

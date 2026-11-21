@@ -90,6 +90,7 @@ Host 入口为空，所有工作都在浏览器中完成。Client 入口在右�
 | `src/client/feature-files.ts` | 递归列目录与文件排序 |
 | `src/client/filter.ts` | 过滤索引与匹配 |
 | `src/client/state.ts` | 页面状态、reducer，以及哪些目录还需要列出 |
+| `src/client/WorkbenchTitle.tsx` | tab 标题，每次渲染都按当前语言取文案 |
 | `src/client/WorkbenchBody.tsx` | 页面本身：页头、过滤框、树、键盘导航与状态提示 |
 | `src/client/locales.ts` | 全部 8 种发布语言的可见文案 |
 
