@@ -2,7 +2,7 @@
 
 | 项 | 值 |
 |---|---|
-| Phase | dev |
+| Phase | done |
 | Profile | standard |
 | 优先级 | P1 |
 | 负责人 | austin |
@@ -25,6 +25,7 @@
 - 2026-11-20 技术方案评审：过滤改用 DSH Client 搜索规则（已同步 PRD BR-06），删除插件配置改为常量，文案覆盖 8 种发布语言。详见 [技术方案评审记录](review/design_review.md)。
 - 2026-11-21 读取数量上限（K8）与 recorded-session 快照豁免（K9，以真实 Web 组合测试代替）。详见 [技术方案](design/TECH_DESIGN.md) 1.3 与 [代码评审记录](review/code_review.md)。
 - 2026-11-21 用户验收：分组名改为按界面语言显示（原为 ROADMAP 原文），修复切换语言后 tab 标题不变。详见 [PRD](spec/PRD.md) 变更记录与 [技术方案](design/TECH_DESIGN.md) 任务 T9。
+- 2026-11-21 结项：代码评审收尾结论为建议合并，业务验收 AC-01～AC-10 全部通过；延后项为树形键盘导航（代码评审 P2-3）与 tab 关闭按钮遮挡标题（ui-dockkit 共用规则）。仅本地使用，不提交上游。
 
 ## 上下文索引
 
