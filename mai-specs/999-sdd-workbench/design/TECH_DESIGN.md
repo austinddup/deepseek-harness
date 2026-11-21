@@ -221,8 +221,8 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | T1 加载方式验证 | K1、K2 | 新增包骨架（package.json、空 `apply`、注册一个只显示标题的 tab、`locale/*.json` 8 种语言）、`sdd-workbench.patch.yml`；修改 `experimental-package-policy.ts`、`tsconfig.client.json`、`packages/experimental/README*.md` | 无 | `pnpm install && pnpm run build:artifacts` 后 `pnpm dsh web --patch …` 启动，引导页出现卡片；`--dump-config` 显示该行。失败则停止并汇报 |
 | T2 ROADMAP 解析 | 2.3.2、附录 §1 §2 | `src/client/roadmap.ts`、`tests/roadmap.client.spec.ts` | T1 | 单元测试覆盖 AC-02 构造数据、行键（在 999 前插入一行键不漂移）、AC-07 越界判断（含归一化绕过与百分号编码） |
 | T3 递归列文件 | 2.3.2、附录 §3 | `src/client/feature-files.ts`、测试 | T1 | 单元测试覆盖排序、隐藏文件、错误归类、深度上限（第 8 层列出、第 9 层不列） |
-| T4 过滤 | K7、附录 §4 | `src/client/filter.ts`、测试 | T2、T3 | 单元测试覆盖 AC-09（a）～（d）、多词查询、组内排序 |
-| T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |
+| T4 过滤 | K7、附录 §4 | `src/client/filter.ts`、测试 | T2、T3 | 单元测试覆盖 AC-09（a）～（d）、多词查询（如 `999 prd`）、组内排序 |
+| T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；AC-07 越界行展开时注入的列目录回调不被调用，且组件只使用读取类回调；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |
 | T6 文案 | 2.3.4 | `locales.ts`（8 种语言）、文案比对测试 | T5 | `zh`、`en` 与 PRD COPY 表逐字一致；`pnpm run check:i18n` 通过 |
 | T7 README | FR-07 | 包 `README.md`、`README.zh.md`、`README.i18n.yaml` | T1～T6 | 按 README 从零执行可启动并使用；含 Model Experience 与 Known Limitations；`pnpm run test:docs` 通过 |
 | T8 本地检查 | 全部 | — | T1～T7 | 先对照 `docs/testing.md:39` 确认“真实组合测试”是否适用于默认不加载的私有实验包，适用则用测试专用 `cordis.yml` 加 patch 启动一次并断言 tab 已注册；本包测试与覆盖率、`typecheck`、`lint`、`hygiene`、`check:i18n`、`build:check` 通过（按 `dsh-pre-push-checks` 选取，报告实际运行的命令） |

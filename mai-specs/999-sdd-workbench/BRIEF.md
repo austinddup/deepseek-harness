@@ -31,3 +31,4 @@
 - [PRD 评审记录](review/prd_review.md)
 - [技术方案](design/TECH_DESIGN.md)（[HTML 审阅版](design/TECH_DESIGN.html)、[代码设计附录](design/CODE_DESIGN.md)）：已评审，F1～F11 已修订
 - [技术方案评审记录](review/design_review.md)：2026-11-20 有条件通过，F1～F11 已修订
+- [业务测试计划](test/TEST_PLAN.md)：AC-01～AC-09 人工验收清单（仅规划，待 T2～T8 完成后执行）
