@@ -157,9 +157,9 @@ export async function listFeatureFiles(list: ListDirectory, dir: string, signal:
   return { kind: 'ok', files: sortFiles(files) }
 }
 
-/** BRIEF.md 置顶，其余按 UTF-16 码点序（确定性，不受界面语言影响）。 */
+/** BRIEF.md 置顶，其余按 Unicode 码点序（确定性，不受界面语言影响；与 JS 的 `<` 按 UTF-16 码元比较不同，含表情等字符时结果有别）。 */
 export function sortFiles(files: readonly string[]): string[] {
-  return [...files].sort((a, b) => a === 'BRIEF.md' ? -1 : b === 'BRIEF.md' ? 1 : a < b ? -1 : a > b ? 1 : 0)
+  return [...files].sort((a, b) => a === 'BRIEF.md' ? -1 : b === 'BRIEF.md' ? 1 : compareCodePoints(a, b))   // 逐个码点比较
 }
 ```
 

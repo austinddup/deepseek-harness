@@ -475,9 +475,9 @@ export async function listFeatureFiles(list: ListDirectory, dir: string, signal:
   return { kind: &#x27;ok&#x27;, files: sortFiles(files) }
 }
 
-/** BRIEF.md 置顶，其余按 UTF-16 码点序（确定性，不受界面语言影响）。 */
+/** BRIEF.md 置顶，其余按 Unicode 码点序（确定性，不受界面语言影响；与 JS 的 `&lt;` 按 UTF-16 码元比较不同，含表情等字符时结果有别）。 */
 export function sortFiles(files: readonly string[]): string[] {
-  return [...files].sort((a, b) =&gt; a === &#x27;BRIEF.md&#x27; ? -1 : b === &#x27;BRIEF.md&#x27; ? 1 : a &lt; b ? -1 : a &gt; b ? 1 : 0)
+  return [...files].sort((a, b) =&gt; a === &#x27;BRIEF.md&#x27; ? -1 : b === &#x27;BRIEF.md&#x27; ? 1 : compareCodePoints(a, b))   // 逐个码点比较
 }</code></pre>
 <p class="code-label">拟议代码 · filter.ts · buildIndex / filterFeatures：每个文件一项并携带所属 Feature 的编号与标题；编号或标题命中显示全部文件，仅文件命中只显示命中文件；组内按匹配度排序</p>
 <pre tabindex="0"><code class="language-ts">/** 每个 Feature 一项（path 为 undefined），每个已列出的文件一项；文件项也带所属 Feature 的编号和标题，让 `999 prd` 这类多词查询能命中。 */
