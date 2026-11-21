@@ -106,6 +106,17 @@ describe('readRoadmap', () => {
     expect(read).toHaveBeenCalledTimes(2)
   })
 
+  it('counts the text read in UTF-8 bytes when the Host reports no size', async () => {
+    // Exactly the limit passes; one byte more fails although the text is shorter in characters.
+    const exact = vi.fn<Read>().mockResolvedValueOnce(page(`${'a'.repeat(MAX_ROADMAP_BYTES - 3)}中`, 1, true))
+    expect(await workbenchFace(remoteOf(exact, vi.fn<List>(), statOf()), SESSION).readRoadmap(signal)).toMatchObject({ ok: true })
+    const over = vi.fn<Read>()
+      .mockResolvedValueOnce(page('a'.repeat(MAX_ROADMAP_BYTES - 2), 1, false))
+      .mockResolvedValueOnce(page('中', 1, true))
+    expect(await workbenchFace(remoteOf(over, vi.fn<List>(), statOf()), SESSION).readRoadmap(signal)).toEqual(TOO_LARGE)
+    expect(over).toHaveBeenCalledTimes(2)
+  })
+
   it('treats a page the Host refuses as too large as an oversized ROADMAP', async () => {
     const error = new RemoteError('workspace-file/too-large', 'lines 1-5000 exceed the byte cap', { path: ABSOLUTE, limit: MAX_ROADMAP_BYTES })
     const read = vi.fn<Read>().mockResolvedValueOnce({ ok: false, error })

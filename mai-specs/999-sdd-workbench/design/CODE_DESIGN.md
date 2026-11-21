@@ -334,6 +334,7 @@ export const ROADMAP_TOO_LARGE = 'sdd-workbench/roadmap-too-large'
 
 const tooLarge = { ok: false, code: ROADMAP_TOO_LARGE, message: '' } as const
 const oversized = (bytes: number | undefined) => bytes !== undefined && bytes > MAX_ROADMAP_BYTES
+const utf8 = new TextEncoder()
 
 readRoadmap: async (signal) => {
   // 先查大小：Host 报告了 bytes 且超限时，一行内容都不读。
@@ -342,10 +343,13 @@ readRoadmap: async (signal) => {
   if (oversized(stat.value.bytes)) return tooLarge
   const pages: string[] = []
   let total = 0
+  let read = 0                                                      // 已读文本的 UTF-8 字节数
   for (let offset = 1; ; ) {
     const page = await remote.workspaceFiles.read(sessionId, ROADMAP_PATH, { offset }, signal)
     if (!page.ok) return page.error.code === 'workspace-file/too-large' ? tooLarge : fold(page)   // 单页超过 Host maxBytes
     if (oversized(page.value.bytes)) return tooLarge                // 文件在两次请求之间变大
+    read += utf8.encode(page.value.text).byteLength
+    if (oversized(read)) return tooLarge                            // Host 不报告大小时仍守住 2 MB
     total += page.value.lines
     if (total > MAX_ROADMAP_LINES) return tooLarge                  // 已读页随 pages 一起丢弃
     if (page.value.lines > 0) pages.push(page.value.text)
@@ -432,4 +436,5 @@ const reasonText = (t: T, reason: Reason) => reason.kind === 'too-large' ? t('ro
 
 - `stat` 预检多一次请求，换来“超限文件一行都不读”。去掉它时，大于 2 MB 的 ROADMAP 读取顺序取决于分页：第一页超过 Host `maxBytes` 会直接被拒（单页内存由 Host 限制），否则要读到某页的 `bytes` 才能判出（评审 G3）。保留 `stat` 让 2 MB 规则在读任何内容前生效。
 - 页面读到的 `bytes` 与 `stat` 不一致（文件在两次请求之间变大）时，以较新的页为准判超限。
+- Host 不报告 `bytes` 时，累计已读文本的 UTF-8 字节数，超过 2 MB 同样判超限（代码评审 P2-1，2026-11-21），保证 NFR-04 的内存上限不依赖 Host 是否报告大小。
 - 过滤只在已读到的文件里匹配（PRD BR-07）。不完整的 Feature 可能漏掉匹配，靠展开后的 COPY-15 提示用户。

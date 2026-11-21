@@ -76,7 +76,7 @@ The relative `name` resolves against the patch file's directory, so the row work
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The Host entry is empty; all work happens in the browser. The Client entry registers a page type in the right sidebar and hands the page two read operations bound to its Session: one reads `mai-specs/ROADMAP.md` page by page through `remote.workspaceFiles.read`, and one lists a directory through `remote.workspaceFiles.list`. The page receives no other Host access, so it cannot write.
+The Host entry is empty; all work happens in the browser. The Client entry registers a page type in the right sidebar and hands the page two read operations bound to its Session: one checks the size of `mai-specs/ROADMAP.md` through `remote.workspaceFiles.stat` and then reads it page by page through `remote.workspaceFiles.read`, and one lists a directory through `remote.workspaceFiles.list`. The page receives no other Host access, so it cannot write.
 
 On open and on refresh, the page parses the ROADMAP's three stage sections into feature rows, sorted by number with non-numeric ids after them. Each row resolves its link to a folder and checks that the folder stays inside `mai-specs/`; a row that points outside never triggers a listing. Expanding a feature lists its folder recursively to a fixed depth, `BRIEF.md` first and the rest by path. While a filter is active, the page lists every feature folder so file names can match, and matches follow the shared Client search rule.
 
@@ -123,7 +123,7 @@ No effect. The package never constructs a model request and never changes a prom
 - **Not mounted by any shipped composition.** The package is private and loads only through its patch file; no bundle or profile includes it.
 - **A `mai-specs` symbolic link that leaves the workspace is half followed.** The Host refuses only a final-component link when it reads a file, so the page reads a ROADMAP outside the workspace; the Host refuses the directory listings, so every feature shows "folder not found". The page adds no check of its own because the Host already allows the read.
 - **Reads are capped.** A ROADMAP over 20,000 lines or 2 MB is refused as too large, and a feature lists at most 2,000 entries; a longer or Host-truncated listing shows what was read and says the list is incomplete. A filter matches only files already read, and folders below depth 8 are left out without notice.
-- **No live updates.** The page reads on open, on a workspace change, and on refresh only.
+- **No live updates.** The page reads the ROADMAP on open, on a workspace change, and on refresh only, and lists a feature folder when the feature is expanded or the filter needs it. Nothing watches the disk.
 - **Six languages are machine translations.** Chinese and English match the feature's PRD word for word; the Japanese, Spanish, French, German, Russian, and Portuguese strings have not been reviewed by a person.
 - **Recorded-session coverage is exempted.** Package tests cover parsing, listing, read limits, filtering, and the jsdom page; `apps/web/tests/sdd-workbench-panel.e2e.ts` mounts the plugin through a test-only overlay over the shipped Web surface and compares a committed ARIA golden. By owner decision, this experimental package adds no keyless recorded-session scenario; a profile or bundle promotion must add one.
 

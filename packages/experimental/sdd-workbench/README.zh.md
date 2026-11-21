@@ -76,7 +76,7 @@ patch 文件插入一行；本包没有配置字段。
 <details>
 <summary>实现细节——点击展开</summary>
 
-Host 入口为空，所有工作都在浏览器中完成。Client 入口在右侧边栏注册一个页面类型，并交给页面两个绑定到其会话的读取操作：一个通过 `remote.workspaceFiles.read` 分页读取 `mai-specs/ROADMAP.md`，一个通过 `remote.workspaceFiles.list` 列出目录。页面拿不到其他 Host 能力，因此无法写入。
+Host 入口为空，所有工作都在浏览器中完成。Client 入口在右侧边栏注册一个页面类型，并交给页面两个绑定到其会话的读取操作：一个先通过 `remote.workspaceFiles.stat` 检查 `mai-specs/ROADMAP.md` 的大小，再通过 `remote.workspaceFiles.read` 分页读取，一个通过 `remote.workspaceFiles.list` 列出目录。页面拿不到其他 Host 能力，因此无法写入。
 
 打开和刷新时，页面把 ROADMAP 的三个阶段分区解析成需求行，按编号排序，非数字编号排在其后。每行把链接解析为目录，并检查该目录仍在 `mai-specs/` 内；指向外部的行永远不会发起列目录请求。展开需求时递归列出其目录，直到固定深度，`BRIEF.md` 排第一，其余按路径排序。过滤生效期间，页面列出所有需求目录，以便文件名参与匹配；匹配遵循共享的 Client 搜索规则。
 
@@ -123,7 +123,7 @@ Host 入口为空，所有工作都在浏览器中完成。Client 入口在右�
 - **没有任何发布组合挂载本包。** 本包是私有包，只能通过其 patch 文件加载；没有 bundle 或 profile 包含它。
 - **指向工作区外的 `mai-specs` 符号链接只被跟随一半。** Host 读取文件时只拒绝末端符号链接，所以页面会读到工作区外的 ROADMAP；Host 拒绝列目录，所以每个需求都显示「未找到需求目录」。由于 Host 本身允许这次读取，页面不另加检查。
 - **读取量有上限。** ROADMAP 超过 2 万行或 2 MB 时按文件过大拒绝读取，每个需求最多列出 2000 个条目；超出或被 Host 截断的清单显示已读到的部分，并提示列表不完整。过滤只匹配已读到的文件，深于第 8 层的目录不展开且不提示。
-- **不实时更新。** 页面只在打开、切换工作区和刷新时读取。
+- **不实时更新。** 页面只在打开、切换工作区和刷新时读取 ROADMAP，在展开需求或过滤需要时列出需求目录。页面不监听磁盘变化。
 - **六种语言为机器翻译。** 中文和英文与该需求的 PRD 逐字一致；日语、西班牙语、法语、德语、俄语和葡萄牙语文案未经人工校对。
 - **recorded-session 覆盖已获豁免。** 包测试覆盖解析、列目录、读取上限、过滤与 jsdom 页面；`apps/web/tests/sdd-workbench-panel.e2e.ts` 通过仅测试用的 overlay 在 shipped Web 表面上挂载本插件，并比较已提交的 ARIA golden。经 owner 决定，本实验包不新增 keyless recorded-session 场景；后续 profile 或 bundle 转正时必须补充。
 

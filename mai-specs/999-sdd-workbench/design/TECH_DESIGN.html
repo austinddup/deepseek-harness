@@ -185,7 +185,7 @@
 <ul>
 <li><b>只做 Client 插件。</b>Host 侧无逻辑，不新增接口；读取全部复用 <code>remote.workspaceFiles</code> 的 <code>read</code> 与 <code>list</code>。</li>
 <li><b>只读且不出 mai-specs。</b><code>read</code> 本身允许读工作区外路径，所以插件只读固定相对路径 <code>mai-specs/ROADMAP.md</code>；Feature 目录先在插件内归一化，必须位于 <code>mai-specs/</code> 之下，再交给只能列工作区内目录的 <code>list</code>，形成双重保护。</li>
-<li><b>读取总量有上限。</b>ROADMAP 先用 <code>stat</code> 查大小，超过 2 MB 或累计超过 2 万行即停止并丢弃已读内容，整页报“文件过大”；每个 Feature 累计最多列 2000 个条目，超出或 Host 返回截断时照常显示已读到的文件并提示列表不完整。插件不修改文件。</li>
+<li><b>读取总量有上限。</b>ROADMAP 先用 <code>stat</code> 查大小，超过 2 MB、已读文本累计超过 2 MB 或累计超过 2 万行即停止并丢弃已读内容，整页报“文件过大”；每个 Feature 累计最多列 2000 个条目，超出或 Host 返回截断时照常显示已读到的文件并提示列表不完整。插件不修改文件。</li>
 <li><b>纯函数承载规则。</b>解析、越界判断、排序、过滤都不依赖 React 与网络；页面组件只管状态与渲染，读取能力以回调注入，组件不接触 <code>ctx</code>。</li>
 <li><b>遵守仓库通用规则。</b>过滤用仓库统一的 <code>TextSearchIndex</code>（编号、标题模糊匹配，路径子串匹配，多词，按匹配度排序）；文案覆盖 8 种发布语言。</li>
 <li><b>复用现成能力。</b>引导页卡片、文档预览、文件地址函数、UI 基础组件都用已有的；不自绘 Markdown，不新画图标，不加插件配置。</li>
@@ -608,6 +608,7 @@ export const ROADMAP_TOO_LARGE = &#x27;sdd-workbench/roadmap-too-large&#x27;
 
 const tooLarge = { ok: false, code: ROADMAP_TOO_LARGE, message: &#x27;&#x27; } as const
 const oversized = (bytes: number | undefined) =&gt; bytes !== undefined &amp;&amp; bytes &gt; MAX_ROADMAP_BYTES
+const utf8 = new TextEncoder()
 
 readRoadmap: async (signal) =&gt; {
   // 先查大小：Host 报告了 bytes 且超限时，一行内容都不读。
@@ -616,10 +617,13 @@ readRoadmap: async (signal) =&gt; {
   if (oversized(stat.value.bytes)) return tooLarge
   const pages: string[] = []
   let total = 0
+  let read = 0                                                      // 已读文本的 UTF-8 字节数
   for (let offset = 1; ; ) {
     const page = await remote.workspaceFiles.read(sessionId, ROADMAP_PATH, { offset }, signal)
     if (!page.ok) return page.error.code === &#x27;workspace-file/too-large&#x27; ? tooLarge : fold(page)   // 单页超过 Host maxBytes
     if (oversized(page.value.bytes)) return tooLarge                // 文件在两次请求之间变大
+    read += utf8.encode(page.value.text).byteLength
+    if (oversized(read)) return tooLarge                            // Host 不报告大小时仍守住 2 MB
     total += page.value.lines
     if (total &gt; MAX_ROADMAP_LINES) return tooLarge                  // 已读页随 pages 一起丢弃
     if (page.value.lines &gt; 0) pages.push(page.value.text)

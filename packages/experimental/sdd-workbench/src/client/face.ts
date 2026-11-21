@@ -25,6 +25,8 @@ const HOST_PAGE_TOO_LARGE = 'workspace-file/too-large'
 
 const oversized = (bytes: number | undefined): boolean => bytes !== undefined && bytes > MAX_ROADMAP_BYTES
 
+const utf8 = new TextEncoder()
+
 /** The whole ROADMAP, or the Host's failure, or {@link ROADMAP_TOO_LARGE}. */
 export type RoadmapText =
   | { readonly ok: true; readonly text: string }
@@ -59,6 +61,8 @@ export function workbenchFace(remote: WorkspaceFilesReadRemote, sessionId: Sessi
       if (oversized(stat.value.bytes)) return TOO_LARGE
       const pages: string[] = []
       let total = 0
+      // The text read so far, in UTF-8 bytes: the limit holds even when the Host reports no size.
+      let read = 0
       // `read` returns at most its configured line count per page; follow it to the last line.
       for (let offset = 1; ; ) {
         const result = await remote.workspaceFiles.read(sessionId, ROADMAP_PATH, { offset }, signal)
@@ -68,7 +72,8 @@ export function workbenchFace(remote: WorkspaceFilesReadRemote, sessionId: Sessi
         }
         // The file can grow between requests; the pages read so far are dropped with `pages`.
         total += result.value.lines
-        if (oversized(result.value.bytes) || total > MAX_ROADMAP_LINES) return TOO_LARGE
+        read += utf8.encode(result.value.text).byteLength
+        if (oversized(result.value.bytes) || oversized(read) || total > MAX_ROADMAP_LINES) return TOO_LARGE
         if (result.value.lines > 0) pages.push(result.value.text)
         if (result.value.eof || result.value.lines === 0) return { ok: true, text: pages.join('\n') }
         offset += result.value.lines
