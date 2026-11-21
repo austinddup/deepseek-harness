@@ -11,6 +11,7 @@
     { "path": "../../client/locale/tsconfig.client.json" },
     { "path": "../../client/ui-renderer" },
     { "path": "../../client/ui-sidebar-right" },
-    { "path": "../../client/ui-slots" }
+    { "path": "../../client/ui-slots" },
+    { "path": "../../util/text-search" }
   ]
 }

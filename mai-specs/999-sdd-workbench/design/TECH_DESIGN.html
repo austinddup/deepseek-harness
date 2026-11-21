@@ -315,8 +315,8 @@
     +sortFiles(files) string[]
   }
   class filter_ts {
-    +buildIndex(roadmap, filesOf) TextSearchIndex
-    +filterFeatures(index, filesOf, query) Result
+    +buildIndex(roadmap, filesOf, previous?) TextSearchIndex
+    +filterFeatures(index, query) Result
   }
   class TextSearchIndex {
     &lt;&lt;已有&gt;&gt;
@@ -501,7 +501,8 @@ const keys = (item: Item): SearchKeys =&gt; ({
 
 export type FilesOf = (dir: string) =&gt; FileListing | undefined
 
-export function buildIndex(roadmap: Roadmap, filesOf: FilesOf): TextSearchIndex&lt;Item&gt; {
+/** previous：上一次的索引，复用已准备的键（文件清单到达后 useMemo 重建时传入）。 */
+export function buildIndex(roadmap: Roadmap, filesOf: FilesOf, previous?: TextSearchIndex&lt;Item&gt;): TextSearchIndex&lt;Item&gt; {
   const items: Item[] = []
   for (const { key } of SECTIONS) {
     for (const feature of roadmap[key]) {
@@ -510,7 +511,7 @@ export function buildIndex(roadmap: Roadmap, filesOf: FilesOf): TextSearchIndex&
       if (listing?.kind === &#x27;ok&#x27;) for (const path of listing.files) items.push({ feature, path })
     }
   }
-  return new TextSearchIndex(items, keys)
+  return previous === undefined ? new TextSearchIndex(items, keys) : previous.update(items, keys)
 }
 
 export interface FilteredFeature {
@@ -519,26 +520,20 @@ export interface FilteredFeature {
   readonly onlyFiles: readonly string[] | undefined
 }
 
-export function filterFeatures(
-  index: TextSearchIndex&lt;Item&gt;, filesOf: FilesOf, query: string,
-): Readonly&lt;Record&lt;SectionKey, readonly FilteredFeature[]&gt;&gt; | &#x27;all&#x27; {
+export function filterFeatures(index: TextSearchIndex&lt;Item&gt;, query: string): Readonly&lt;Record&lt;SectionKey, readonly FilteredFeature[]&gt;&gt; | &#x27;all&#x27; {
   if (query.trim() === &#x27;&#x27;) return &#x27;all&#x27;                          // 空关键词：完整列表与原展开状态
-  const whole = new Set&lt;string&gt;()                                // Feature 项命中的行键
-  const hits = new Map&lt;string, Set&lt;string&gt;&gt;()                    // 行键 → 命中的文件
-  const order: RoadmapFeature[] = []                             // 首次出现顺序 = 匹配度顺序（同分保持构建顺序，即编号顺序）
+  // Map 的插入顺序 = 首次命中顺序 = 匹配度顺序（同分保持构建顺序，即编号顺序）
+  const found = new Map&lt;string, { feature: RoadmapFeature; whole: boolean; files: string[] }&gt;()
   for (const { feature, path } of index.search(query)) {
-    if (!whole.has(feature.key) &amp;&amp; !hits.has(feature.key)) order.push(feature)
-    if (path === undefined) whole.add(feature.key)
-    else (hits.get(feature.key) ?? hits.set(feature.key, new Set()).get(feature.key)!).add(path)
+    let entry = found.get(feature.key)
+    if (entry === undefined) { entry = { feature, whole: false, files: [] }; found.set(feature.key, entry) }
+    if (path === undefined) entry.whole = true                   // Feature 项命中：显示全部文件
+    else entry.files.push(path)
   }
-  const out = { &#x27;in-progress&#x27;: [], planned: [], done: [] } as Record&lt;SectionKey, FilteredFeature[]&gt;
-  for (const feature of order) {
-    if (whole.has(feature.key)) { out[feature.section].push({ feature, onlyFiles: undefined }); continue }
-    const listing = feature.dir.kind === &#x27;inside&#x27; ? filesOf(feature.dir.path) : undefined
-    const matched = hits.get(feature.key)!
-    // 文件按清单原顺序显示，不按匹配度
-    const onlyFiles = listing?.kind === &#x27;ok&#x27; ? listing.files.filter(f =&gt; matched.has(f)) : []
-    out[feature.section].push({ feature, onlyFiles })
+  const out: Record&lt;SectionKey, FilteredFeature[]&gt; = { &#x27;in-progress&#x27;: [], planned: [], done: [] }
+  for (const { feature, whole, files } of found.values()) {
+    // 命中文件按文件清单的顺序，不按匹配度
+    out[feature.section].push({ feature, onlyFiles: whole ? undefined : sortFiles(files) })
   }
   return out
 }</code></pre>
