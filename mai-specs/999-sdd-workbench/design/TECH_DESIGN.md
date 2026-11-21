@@ -157,6 +157,9 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | `package.json` | `private: true`；依赖 `dsh-util-text-search`、`dsh-util-workspace-path`；`dsh.client.inject` 列出依赖的 Client 包；结构参照 `packages/experimental/client-ui-stats/package.json` |
 | `src/index.ts` | Host 半，空 `apply()`，无 `Config` |
 | `src/client/index.ts` | 注册 tab 类型、正文（inject 读取回调）、字典 |
+| `src/client/face.ts` | `workbenchFace(remote, sessionId)`：把 `read`（分页读到 `eof`）与 `list` 绑定到会话，失败折叠为值；只暴露这两个读取回调（T5 实施时从 `index.ts` 拆出，便于单测） |
+| `src/client/state.ts` | 页面状态的纯 reducer、`load()`、`wantedDirs()`、`isOpen()`（T5 实施时从组件拆出，便于单测） |
+| `src/client/WorkbenchBody.module.css`、`src/css-modules.d.ts` | 页面样式（沿用“文件”页的页头、工具按钮、行、提示样式）与 CSS Module 类型声明（同 `ui-sidebar-files`） |
 | `sdd-workbench.patch.yml` | `- insert: [{ id: sdd-workbench, name: './src/index.ts' }]`，写法沿用 `cua-macos/examples/macos.cordis.yml` 先例，T1 已验证 |
 | `locale/{en,zh,ja,es,fr,de,ru,pt}.json` | 插件元数据标题与描述，8 种发布语言（`scripts/verify-locale-metadata.ts`） |
 | `README.md`、`README.zh.md`、`README.i18n.yaml` | 安装、构建、启动、验证命令（FR-07），以及仓库要求的 Model Experience（`none`）与 Known Limitations 章节，按 `docs/AGENTS.md` 双语规范 |
@@ -178,7 +181,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 
 #### 2.3.3 页面（UI-01、FR-04～FR-08）
 
-- `client/index.ts`：`slots.register({ name: 'sidebar.right.pane.tab', key, locale, inject: () => ({ readRoadmap, listDirectory }) }, WorkbenchBody)`，两个回调在 apply 世界中闭包 `ctx.remote.workspaceFiles`（参照 `ui-sidebar-files` 的 `createList(ctx.remote)` + `inject`）。
+- `client/index.ts`：`slots.register({ name: 'sidebar.right.pane.tab', key, locale, inject: sessionId => workbenchFace(ctx.remote, sessionId) }, WorkbenchBody)`，两个回调在 apply 世界中闭包 `ctx.remote.workspaceFiles`（参照 `ui-sidebar-files` 的 `createList(ctx.remote)` + `inject`）。
 - `WorkbenchBody.tsx`：从 props 取 `sessionId`、`useSessions(s => s.byId[sessionId]?.cwd)`、`useTabInfo()` 与注入的两个回调。刷新只由页头按钮触发（PRD FR-06 已删除快捷键），因此不调用 `tab.actions.bindCommands`。
 - 打开文件：`tab.actions.openResource(fileAddressFor(sessionId, cwd, path), panel.isFloating ? undefined : { paneId: panel.id })`，与 `FilesBody.tsx:47` 同法；已打开的资源 tab 由右侧栏聚焦（AC-04 “不重复打开”由框架保证）。
 - 页面类 tab 在同一分栏内去重（右侧栏 README“页 tab 始终只在目标分栏内去重”），满足 UI-01“已打开时切换到已有 tab”。
@@ -224,7 +227,7 @@ Remote 调用不抛异常，失败折叠为 `{ ok: false, error }`（`packages/t
 | T2 ROADMAP 解析 | 2.3.2、附录 §1 §2 | `src/client/roadmap.ts`、`src/client/code-point.ts`、`tests/roadmap.client.spec.ts` | T1 | 单元测试覆盖 AC-02 构造数据、编号排序（数值序、非数字编号在后、同编号保持行序）、行键（在 999 前插入一行键不漂移）、AC-07 越界判断（含归一化绕过与百分号编码） |
 | T3 递归列文件 | 2.3.2、附录 §3 | `src/client/feature-files.ts`、测试 | T1 | 单元测试覆盖排序、隐藏文件、错误归类、深度上限（第 8 层列出、第 9 层不列） |
 | T4 过滤 | K7、附录 §4 | `src/client/filter.ts`、测试 | T2、T3 | 单元测试覆盖 AC-09（a）～（d）、多词查询（如 `999 prd`）、组内排序 |
-| T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；AC-07 越界行展开时注入的列目录回调不被调用，且组件只使用读取类回调；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |
+| T5 页面与状态 | 2.1.2、2.3.3、附录 §5 | `WorkbenchBody.tsx`、`state.ts`、`face.ts`、`client/index.ts`、样式、组件测试 | T2～T4 | 组件测试覆盖 AC-01 注册、AC-03～AC-06 状态与打开调用参数、AC-05“在 999 前插入一行”、迟到结果丢弃、过滤状态的展开；AC-07 越界行展开时注入的列目录回调不被调用，且组件只使用读取类回调；HMR 处置测试（卸载后注册项被移除）；`src/**` 逐文件 100% 覆盖率 |
 | T6 文案 | 2.3.4 | `locales.ts`（8 种语言）、文案比对测试 | T5 | `zh`、`en` 与 PRD COPY 表逐字一致；`pnpm run check:i18n` 通过 |
 | T7 README | FR-07 | 包 `README.md`、`README.zh.md`、`README.i18n.yaml` | T1～T6 | 按 README 从零执行可启动并使用；含 Model Experience 与 Known Limitations；`pnpm run test:docs` 通过 |
 | T8 本地检查 | 全部 | — | T1～T7 | 先对照 `docs/testing.md:39` 确认“真实组合测试”是否适用于默认不加载的私有实验包，适用则用测试专用 `cordis.yml` 加 patch 启动一次并断言 tab 已注册；本包测试与覆盖率、`typecheck`、`lint`、`hygiene`、`check:i18n`、`build:check` 通过（按 `dsh-pre-push-checks` 选取，报告实际运行的命令） |

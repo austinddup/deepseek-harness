@@ -7,11 +7,16 @@
   "include": ["src"],
   "references": [
     { "path": "../../../vendor/cordis" },
+    { "path": "../../api/remotes/tsconfig.client.json" },
     { "path": "../../api/workspace-files/tsconfig.client.json" },
+    { "path": "../../core/session" },
     { "path": "../../client/locale/tsconfig.client.json" },
+    { "path": "../../client/ui-primitives" },
     { "path": "../../client/ui-renderer" },
+    { "path": "../../client/ui-session" },
     { "path": "../../client/ui-sidebar-right" },
     { "path": "../../client/ui-slots" },
-    { "path": "../../util/text-search" }
+    { "path": "../../util/text-search" },
+    { "path": "../../util/workspace-path" }
   ]
 }

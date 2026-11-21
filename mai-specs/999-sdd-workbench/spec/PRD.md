@@ -146,16 +146,16 @@ flowchart LR
 | COPY-02 | 入口卡片描述 | 浏览 mai-specs 中的需求与规格 | Browse features and specs in mai-specs | — |
 | COPY-03 | 刷新按钮可访问名称/提示 | 刷新 | Refresh | — |
 | COPY-04 | 分组标题 | {section} ({count}) | {section} ({count}) | {section} 为分区名，取 ROADMAP 原文；英文界面同样显示原文分区名；数量为整数，0 也显示 |
-| COPY-05 | 无工作目录 | 当前会话没有工作目录。 | This session has no working directory. | — |
-| COPY-06 | 未初始化 | 未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra。 | mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first. | — |
-| COPY-07 | 无 Feature | ROADMAP 中还没有需求。 | No features in ROADMAP yet. | — |
+| COPY-05 | 无工作目录 | 当前会话没有工作目录 | This session has no working directory. | — |
+| COPY-06 | 未初始化 | 未找到 mai-specs/ROADMAP.md。请先在项目中初始化 my-ai-infra | mai-specs/ROADMAP.md not found. Set up my-ai-infra in this project first. | — |
+| COPY-07 | 无 Feature | ROADMAP 中还没有需求 | No features in ROADMAP yet. | — |
 | COPY-08 | 读取失败 | 无法读取 ROADMAP：{reason} | Couldn't read ROADMAP: {reason} | {reason} 为 Host 返回的错误信息 |
 | COPY-09 | Feature 目录缺失 | 未找到需求目录 {path} | Feature folder {path} not found | {path} 为 ROADMAP 中该行链接的原文 |
 | COPY-10 | 目录为空 | 没有文件 | No files | — |
 | COPY-11 | 搜索框占位文字与可访问名称 | 按编号、标题或文件名过滤 | Filter by number, title, or file name | — |
 | COPY-12 | 无匹配 | 没有匹配的需求或文件 | No matching features or files | — |
 | COPY-13 | 目录读取失败 | 无法读取需求目录：{reason} | Couldn't read feature folder: {reason} | {reason} 为 Host 返回的错误信息 |
-| COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果。 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息 |
+| COPY-14 | 刷新失败 | 刷新失败：{reason}。显示的是上次的结果 | Refresh failed: {reason}. Showing the previous results. | {reason} 为 Host 返回的错误信息 |
 
 ## 9. 验收标准（Acceptance Criteria）
 
@@ -266,3 +266,4 @@ flowchart LR
 | 2026-11-20 | 处理技术方案评审（[评审记录](../review/design_review.md)）：过滤改用 DSH Client 搜索规则（F2）；补充其余 6 种发布语言说明（F3）；文案占位符改用英文名，界面显示不变（F7） | BR-06、NFR-01、COPY-04/08/09/13/14 |
 | 2026-11-21 | 编写业务测试计划时发现验收标准不可判定，用户确认修订措辞（不改变功能）：文件数与分区计数改为与验收时实际数据比对；占位图标满足 AC-01；只读验证改为造数后快照比对；排序明确为码点顺序，隐藏目录同样不列出 | BR-03、AC-01、AC-02、AC-03、AC-07 |
 | 2026-11-21 | 用户决策：Feature 列表组内改按编号从小到大排列，使最新的 Feature 在最上面（原为保持 ROADMAP 行顺序）；过滤时匹配度相同按编号顺序 | BR-02、BR-06、AC-02、AC-05 |
+| 2026-11-21 | 用户决策：中文提示按仓库 UI 规范（不超过两句时句末不加句号）去掉句末“。”；英文不变 | COPY-05、COPY-06、COPY-07、COPY-14 |

@@ -303,6 +303,12 @@ const isOpen = (f: FilteredFeature) => query === ''
 // 关键词清空 → filterToggled 清空，回到 expanded（AC-09（d））
 ```
 
+**实施说明（T5，2026-11-21）**：上面两段是评审时的示意，实现保持其语义，结构有三处调整：
+
+- 状态与 `load()` 拆到 `state.ts`，是纯 reducer；ROADMAP 读取与列目录回调由 `face.ts` 的 `workbenchFace(remote, sessionId)` 生成。
+- 列目录改为由状态驱动：`wantedDirs(state)` 给出“已展开或过滤中、尚无缓存的 inside 目录”（刷新进行中返回空），组件的 effect 对其发起请求，不再在刷新回调里逐个调用 `fetchFiles`。刷新开始时丢弃仍在 `loading` 的缓存项，使被取代的请求结束后会被重新发起。
+- 工作目录变化时以 `{ kind: 'loading' }` 作为上一状态读取，新目录读取失败不会回退显示旧目录的列表。界面上刷新进行中按钮禁用，因此“被取代的读取”只发生在工作目录变化或卸载时。
+
 **审查问题**
 
 - `useReducer` 的状态是否需要跨会话保留？`keepMounted: true` 只在同一会话内保留；切换会话后回来同样保留（右侧栏按会话持有正文）。不额外持久化。
