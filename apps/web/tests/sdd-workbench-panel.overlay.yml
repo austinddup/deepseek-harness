@@ -1,0 +1,7 @@
+# Test-only composition: mount the experimental SDD workbench page in the right
+# sidebar over the shipped Web surface. No shipped profile mounts this package
+# (default-product isolation forbids it), so this overlay is the only real-Web
+# composition that can render it.
+- insert:
+    - id: sdd-workbench
+      name: '@deepseek-ai/dsh-sdd-workbench'

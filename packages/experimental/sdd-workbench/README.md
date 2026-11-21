@@ -125,6 +125,7 @@ No effect. The package never constructs a model request and never changes a prom
 - **Reads are capped.** A ROADMAP over 20,000 lines or 2 MB is refused as too large, and a feature lists at most 2,000 entries; a longer or Host-truncated listing shows what was read and says the list is incomplete. A filter matches only files already read, and folders below depth 8 are left out without notice.
 - **No live updates.** The page reads on open, on a workspace change, and on refresh only.
 - **Six languages are machine translations.** Chinese and English match the feature's PRD word for word; the Japanese, Spanish, French, German, Russian, and Portuguese strings have not been reviewed by a person.
+- **Recorded-session coverage is exempted.** Package tests cover parsing, listing, read limits, filtering, and the jsdom page; `apps/web/tests/sdd-workbench-panel.e2e.ts` mounts the plugin through a test-only overlay over the shipped Web surface and compares a committed ARIA golden. By owner decision, this experimental package adds no keyless recorded-session scenario; a profile or bundle promotion must add one.
 
 <a id="dev-note"></a>
 ### Dev Note

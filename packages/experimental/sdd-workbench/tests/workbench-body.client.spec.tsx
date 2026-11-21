@@ -53,6 +53,9 @@ interface Options {
   readonly dictionary?: Readonly<Record<string, string>>
 }
 
+/** The Session list state the body selects its working directory from. */
+type SessionsState = Parameters<Parameters<WorkbenchBodyProps['useSessions']>[0]>[0]
+
 function mount(options: Options = {}) {
   const read = vi.fn(options.read ?? (async (): Promise<RoadmapText> => ({ ok: true, text: roadmap([R999]) })))
   const list = vi.fn(options.list ?? listOf(TREE))
@@ -60,8 +63,8 @@ function mount(options: Options = {}) {
   const placement = { cwd: options.cwd === undefined ? ROOT : options.cwd, floating: options.floating ?? false }
   const props = () => ({
     sessionId: SESSION,
-    useSessions: <S,>(select: (state: unknown) => S) =>
-      select({ byId: placement.cwd === null ? {} : { [SESSION]: { cwd: placement.cwd } } }),
+    useSessions: <S,>(select: (state: SessionsState) => S) =>
+      select({ byId: placement.cwd === null ? {} : { [SESSION]: { cwd: placement.cwd } } } as SessionsState),
     useTabInfo: () => ({
       panel: { id: PANE, isFloating: placement.floating },
       tab: { actions: { openResource } },
@@ -69,7 +72,7 @@ function mount(options: Options = {}) {
     readRoadmap: read,
     listDirectory: list,
     t: options.dictionary === undefined ? t : makeTranslate(options.dictionary),
-  }) as unknown as WorkbenchBodyProps
+  }) as WorkbenchBodyProps
   const view = render(<WorkbenchBody {...props()} />)
   const rerender = () => { view.rerender(<WorkbenchBody {...props()} />) }
   return { view, read, list, openResource, placement, rerender }
@@ -185,7 +188,7 @@ describe('the tree (AC-02, AC-03, AC-04)', () => {
     ['failed', { ok: false, code: 'workspace-file/permission-denied', message: 'denied' }, '无法读取需求目录：denied'],
     ['empty', 'empty', zh['feature.empty']],
   ])('says so when the Feature directory is %s', async (_name, answer, text) => {
-    const { view } = mount({ list: async () => answer === 'empty' ? { ok: true, entries: [] } : answer })
+    const { view } = mount({ list: async () => answer === 'empty' ? { ok: true, entries: [], truncated: false } : answer })
     await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
     fireEvent.click(feature(view.container, '999'))
     await waitFor(() => { expect(view.container.querySelector('[data-workbench-row="note"]')?.textContent).toBe(text) })
@@ -284,7 +287,7 @@ describe('refresh (AC-05)', () => {
     fireEvent.click(refresh(view.container))
     // A second press while the refresh runs does nothing.
     fireEvent.click(refresh(view.container))
-    await act(async () => { listings[0]!({ ok: true, entries: [{ name: 'STALE.md', type: 'file' }] }) })
+    await act(async () => { listings[0]!({ ok: true, entries: [{ name: 'STALE.md', type: 'file' }], truncated: false }) })
     expect(file(view.container, 'STALE.md')).toBeNull()
     await reads.answer(1, { ok: true, text: roadmap([R999]) })
     await waitFor(() => { expect(file(view.container, 'BRIEF.md')).not.toBeNull() })
@@ -351,7 +354,7 @@ describe('filter (AC-09, BR-06)', () => {
     await waitFor(() => { expect(feature(view.container, '999')).not.toBeNull() })
     fireEvent.change(filter(view.container), { target: { value: '不存在的词' } })
     expect(state(view.container)).toBe('filtering')
-    await act(async () => { pending[0]!({ ok: true, entries: [] }) })
+    await act(async () => { pending[0]!({ ok: true, entries: [], truncated: false }) })
     expect(state(view.container)).toBe('no-match')
     expect(view.container.textContent).toContain(zh['filter.noMatch'])
   })

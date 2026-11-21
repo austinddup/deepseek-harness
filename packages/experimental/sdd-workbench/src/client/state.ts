@@ -22,6 +22,7 @@ export type Load =
     readonly refreshError: Reason | undefined
   }
 
+/** Everything the page shows: the loaded list, file listings, expansion, and the filter. */
 export interface WorkbenchState {
   readonly load: Load
   /** File listings by Feature directory; Features sharing a directory share one listing. */
@@ -36,6 +37,7 @@ export interface WorkbenchState {
   readonly filterToggled: ReadonlySet<string>
 }
 
+/** One change to the page state, dispatched by the page or by a finished read. */
 export type WorkbenchAction =
   | { readonly type: 'reset'; readonly workspace: boolean }
   | { readonly type: 'start' }
@@ -114,7 +116,11 @@ export function reduce(state: WorkbenchState, action: WorkbenchAction): Workbenc
   }
 }
 
-/** Every Feature of the list, in display order. */
+/**
+ * Every Feature of the list, in display order.
+ * @param roadmap - the parsed ROADMAP sections.
+ * @returns the Features of all sections, section by section.
+ */
 export function allFeatures(roadmap: Roadmap): RoadmapFeature[] {
   return SECTIONS.flatMap(({ key }) => [...roadmap[key]])
 }

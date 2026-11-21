@@ -4838,6 +4838,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'experimental-client-ui-forge ForgeTab',
       'experimental-client-ui-forge ChangesTab',
       'experimental-liveshare ViewerSharePathBody',
+      'sdd-workbench WorkbenchBody',
       'experimental-session-inspector SessionInspectorView',
       'timeline Panel',
     ],

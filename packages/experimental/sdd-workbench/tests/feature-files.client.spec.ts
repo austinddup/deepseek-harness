@@ -28,7 +28,7 @@ function fakeList(
     let node: Tree | 'file' | 'other' | undefined = tree
     for (const part of path.slice(DIR.length).split('/').filter(Boolean)) node = typeof node === 'object' ? node[part] : undefined
     if (typeof node !== 'object') return { ok: false, code: 'workspace-file/not-found', message: `no ${path}` }
-    const entries = Object.entries(node).map(([name, child]) => ({ name, type: typeof child === 'object' ? 'directory' : child }))
+    const entries = Object.entries(node).map(([name, child]) => ({ name, type: typeof child === 'object' ? 'directory' as const : child }))
     return { ok: true, entries, truncated: cut.has(path) }
   }
   return { list, calls }

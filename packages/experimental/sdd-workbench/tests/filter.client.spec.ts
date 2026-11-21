@@ -20,6 +20,7 @@ const FILES: Record<string, FileListing> = {
   'mai-specs/999-sdd-workbench': {
     kind: 'ok',
     files: ['BRIEF.md', 'context/_INDEX.md', 'design/TECH_DESIGN.md', 'review/prd_review.md', 'spec/PRD.md', 'test/TEST_PLAN.md'],
+    incomplete: false,
   },
   'mai-specs/997-bench': { kind: 'failed', reason: 'denied' },
 }
@@ -94,7 +95,7 @@ describe('buildIndex', () => {
     const cache: Record<string, FileListing> = {}
     const first = buildIndex(ROADMAP, dir => cache[dir])
     expect(summary(filterFeatures(first, 'layout.md'))).toEqual({ 'in-progress': [], planned: [], done: [] })
-    cache['mai-specs/996-layout'] = { kind: 'ok', files: ['BRIEF.md', 'design/layout.md'] }
+    cache['mai-specs/996-layout'] = { kind: 'ok', files: ['BRIEF.md', 'design/layout.md'], incomplete: false }
     const second = buildIndex(ROADMAP, dir => cache[dir], first)
     expect(summary(filterFeatures(second, 'layout.md'))).toEqual({ 'in-progress': [], planned: [], done: ['996: design/layout.md'] })
     // The previous index stays valid.

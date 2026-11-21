@@ -125,6 +125,7 @@ Host 入口为空，所有工作都在浏览器中完成。Client 入口在右�
 - **读取量有上限。** ROADMAP 超过 2 万行或 2 MB 时按文件过大拒绝读取，每个需求最多列出 2000 个条目；超出或被 Host 截断的清单显示已读到的部分，并提示列表不完整。过滤只匹配已读到的文件，深于第 8 层的目录不展开且不提示。
 - **不实时更新。** 页面只在打开、切换工作区和刷新时读取。
 - **六种语言为机器翻译。** 中文和英文与该需求的 PRD 逐字一致；日语、西班牙语、法语、德语、俄语和葡萄牙语文案未经人工校对。
+- **recorded-session 覆盖已获豁免。** 包测试覆盖解析、列目录、读取上限、过滤与 jsdom 页面；`apps/web/tests/sdd-workbench-panel.e2e.ts` 通过仅测试用的 overlay 在 shipped Web 表面上挂载本插件，并比较已提交的 ARIA golden。经 owner 决定，本实验包不新增 keyless recorded-session 场景；后续 profile 或 bundle 转正时必须补充。
 
 <a id="dev-note"></a>
 ### 开发备注
